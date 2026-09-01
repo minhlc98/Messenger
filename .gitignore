@@ -1,0 +1,22 @@
+### Backend
+/backend/.env
+/backend/uploads
+/backend/temp
+
+### Frontend
+/frontend/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/frontend/coverage
+
+# next.js
+/frontend/.next/
+/frontend/out/
+
+# production
+/frontend/build
+
+# env
+/frontend/.env
