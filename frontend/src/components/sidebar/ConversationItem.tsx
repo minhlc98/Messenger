@@ -6,6 +6,7 @@ import { Conversation } from '@/types';
 import Avatar from '@/components/ui/Avatar';
 import { formatConversationTime, truncate } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth';
+import { useChatStore } from '@/store/chat';
 
 interface ConversationItemProps {
   conversation: Conversation;
@@ -14,6 +15,7 @@ interface ConversationItemProps {
 export default function ConversationItem({ conversation }: ConversationItemProps) {
   const pathname = usePathname();
   const { user } = useAuthStore();
+  const onlineUsers = useChatStore((state) => state.onlineUsers);
   const isActive = pathname === `/chat/${conversation.id}`;
 
   // For 1-1 chat, show the other person's info
@@ -26,7 +28,9 @@ export default function ConversationItem({ conversation }: ConversationItemProps
     : otherMember?.name || 'Unknown';
 
   const displayAvatar = conversation.is_group ? conversation.avatar_url : otherMember?.avatar_url;
-  const isOnline = !conversation.is_group ? otherMember?.is_online : undefined;
+  const isOnline = !conversation.is_group && otherMember 
+    ? (onlineUsers[otherMember.id] ?? otherMember.is_online) 
+    : undefined;
 
   const lastMsg = conversation.last_message;
   const lastMsgText = lastMsg

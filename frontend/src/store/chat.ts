@@ -11,6 +11,7 @@ interface ChatStore {
   messages: Record<string, Message[]>;
   typingUsers: TypingState;
   hasMore: Record<string, boolean>;
+  onlineUsers: Record<string, boolean>;
   pendingFriendRequestsCount: number;
 
   setConversations: (convs: Conversation[]) => void;
@@ -22,6 +23,7 @@ interface ChatStore {
   addMessage: (conversationId: string, message: Message) => void;
   setTyping: (conversationId: string, userId: string, isTyping: boolean) => void;
   setHasMore: (conversationId: string, hasMore: boolean) => void;
+  setOnlineUser: (userId: string, isOnline: boolean) => void;
   setPendingFriendRequestsCount: (count: number) => void;
   incrementPendingFriendRequestsCount: () => void;
   decrementPendingFriendRequestsCount: () => void;
@@ -33,6 +35,7 @@ export const useChatStore = create<ChatStore>((set) => ({
   messages: {},
   typingUsers: {},
   hasMore: {},
+  onlineUsers: {},
   pendingFriendRequestsCount: 0,
 
   setPendingFriendRequestsCount: (count) => set({ pendingFriendRequestsCount: count }),
@@ -102,5 +105,10 @@ export const useChatStore = create<ChatStore>((set) => ({
   setHasMore: (conversationId, hasMore) =>
     set((state) => ({
       hasMore: { ...state.hasMore, [conversationId]: hasMore },
+    })),
+
+  setOnlineUser: (userId, isOnline) =>
+    set((state) => ({
+      onlineUsers: { ...state.onlineUsers, [userId]: isOnline },
     })),
 }));

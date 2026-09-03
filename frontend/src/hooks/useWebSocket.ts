@@ -31,6 +31,7 @@ export function useWebSocketInit() {
     updateConversationLastMessage,
     setTyping,
     addConversation,
+    setOnlineUser,
     incrementPendingFriendRequestsCount,
   } = useChatStore();
 
@@ -105,6 +106,13 @@ export function useWebSocketInit() {
               description: 'Kiểm tra mục Bạn bè để xem và phản hồi.',
             });
             break;
+
+          case 'online':
+          case 'offline':
+            if (data.user_id) {
+              setOnlineUser(data.user_id, data.type === 'online');
+            }
+            break;
         }
       } catch (err) {
         console.error('[WS] parse error:', err);
@@ -123,7 +131,7 @@ export function useWebSocketInit() {
       isConnecting = false;
       wsInstance?.close();
     };
-  }, [token, addMessage, updateConversationLastMessage, setTyping, addConversation]);
+  }, [token, addMessage, updateConversationLastMessage, setTyping, addConversation, setOnlineUser]);
 
   useEffect(() => {
     if (token) connect();

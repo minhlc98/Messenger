@@ -1,6 +1,7 @@
 import { Conversation } from '@/types';
 import Avatar from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/auth';
+import { useChatStore } from '@/store/chat';
 import { Users } from 'lucide-react';
 
 interface ChatHeaderProps {
@@ -9,6 +10,7 @@ interface ChatHeaderProps {
 
 export default function ChatHeader({ conversation }: ChatHeaderProps) {
   const { user } = useAuthStore();
+  const onlineUsers = useChatStore((state) => state.onlineUsers);
 
   const otherMember = !conversation.is_group
     ? conversation.members?.find((m) => m.id !== user?.id)
@@ -19,7 +21,9 @@ export default function ChatHeader({ conversation }: ChatHeaderProps) {
     : otherMember?.name || 'Unknown';
 
   const displayAvatar = conversation.is_group ? conversation.avatar_url : otherMember?.avatar_url;
-  const isOnline = !conversation.is_group ? otherMember?.is_online : undefined;
+  const isOnline = !conversation.is_group && otherMember 
+    ? (onlineUsers[otherMember.id] ?? otherMember.is_online) 
+    : undefined;
   const memberCount = conversation.members?.length || 0;
 
   return (
