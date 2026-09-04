@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth';
+import { toast } from 'sonner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
@@ -38,6 +39,12 @@ const processQueue = (error: any, token: string | null = null) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Handle 429 Too Many Requests
+    if (error.response?.status === 429) {
+      toast.error('Bạn thao tác quá nhanh. Vui lòng thử lại sau.');
+      return Promise.reject(error);
+    }
+
     const originalRequest = error.config;
 
     // Không can thiệp refresh token cho các route auth (login, register, refresh)
