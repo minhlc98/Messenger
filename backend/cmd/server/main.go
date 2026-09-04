@@ -36,7 +36,7 @@ func main() {
 	go hub.Run()
 
 	r := gin.Default()
-	router.Setup(r, db, cfg, hub)
+	router.Setup(r, db, rdb, cfg, hub)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,

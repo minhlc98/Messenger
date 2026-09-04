@@ -10,10 +10,11 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
-func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config, hub *websocket.Hub) {
+func Setup(r *gin.Engine, db *gorm.DB, rdb *redis.Client, cfg *config.Config, hub *websocket.Hub) {
 	r.Use(cors.New(cors.Config{
 		AllowAllOrigins:  true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -50,6 +51,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config, hub *websocket.Hub) {
 	{
 		// Public auth routes
 		auth := api.Group("/auth")
+		auth.Use(middleware.RateLimitByIPMiddleware(rdb, cfg))
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
@@ -59,6 +61,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config, hub *websocket.Hub) {
 		// Protected routes
 		protected := api.Group("/")
 		protected.Use(middleware.AuthMiddleware(cfg))
+		protected.Use(middleware.RateLimitByTokenMiddleware(rdb, cfg))
 		{
 			// Users
 			users := protected.Group("/users")
