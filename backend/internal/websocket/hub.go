@@ -59,10 +59,8 @@ func (h *Hub) Run() {
 			h.Clients[client.UserID] = client
 			h.mu.Unlock()
 
-			h.Redis.Set(context.Background(), "user:"+client.UserID+":online", 1, 5*time.Minute)
 			h.DB.Exec("UPDATE users SET is_online = true WHERE id = ?", client.UserID)
 
-			go h.maintainOnlineStatus(client.UserID)
 			h.broadcastStatus(client.UserID, "online")
 
 		case client := <-h.Unregister:
@@ -73,7 +71,6 @@ func (h *Hub) Run() {
 			}
 			h.mu.Unlock()
 
-			h.Redis.Del(context.Background(), "user:"+client.UserID+":online")
 			h.DB.Exec("UPDATE users SET is_online = false WHERE id = ?", client.UserID)
 			h.broadcastStatus(client.UserID, "offline")
 
@@ -91,7 +88,6 @@ func (h *Hub) handleBroadcast(message []byte) {
 	}
 
 	msgType, _ := msg["type"].(string)
-	convID, _ := msg["conversation_id"].(string)
 
 	switch msgType {
 	case "message":
@@ -106,11 +102,15 @@ func (h *Hub) handleBroadcast(message []byte) {
 		h.handleChatMessage(wsMsg)
 
 	case "typing":
-		senderID, _ := msg["sender_id"].(string)
-		h.BroadcastToConversation(convID, senderID, map[string]interface{}{
+		var wsTypingMsg dto.WSTypingMessageType
+		if err := json.Unmarshal(message, &wsTypingMsg); err != nil {
+			log.Println("Invalid typing message:", err)
+			return
+		}
+		h.BroadcastToConversation(wsTypingMsg.ConversationID, wsTypingMsg.SenderID, map[string]interface{}{
 			"type":            "typing",
-			"conversation_id": convID,
-			"user_id":         senderID,
+			"conversation_id": wsTypingMsg.ConversationID,
+			"user_id":         wsTypingMsg.SenderID,
 		})
 	}
 }

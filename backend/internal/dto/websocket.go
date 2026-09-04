@@ -8,3 +8,9 @@ type WSMessageType struct {
 	MessageType    string `json:"message_type"`
 	FileURL        string `json:"file_url"`
 }
+
+type WSTypingMessageType struct {
+	Type           string `json:"type"`
+	ConversationID string `json:"conversation_id"`
+	SenderID       string `json:"sender_id"`
+}
