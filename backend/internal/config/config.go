@@ -9,21 +9,23 @@ import (
 )
 
 type Config struct {
-	Port           string
-	DBHost         string
-	DBPort         string
-	DBUser         string
-	DBPassword     string
-	DBName         string
-	DBMaxOpenConns int
-	DBMaxIdleConns int
-	DBMaxLifetime  int
-	DBMaxIdleTime  int
-	RedisHost      string
-	RedisPort      string
-	JWTSecret      string
-	JWTRefreshSec  string
-	UploadDir      string
+	Port             string
+	DBHost           string
+	DBPort           string
+	DBUser           string
+	DBPassword       string
+	DBName           string
+	DBMaxOpenConns   int
+	DBMaxIdleConns   int
+	DBMaxLifetime    int
+	DBMaxIdleTime    int
+	RedisHost        string
+	RedisPort        string
+	JWTSecret        string
+	JWTRefreshSec    string
+	UploadDir        string
+	RateLimitByIP    int
+	RateLimitByToken int
 }
 
 func Load() *Config {
@@ -33,21 +35,23 @@ func Load() *Config {
 	}
 
 	return &Config{
-		Port:           getEnv("PORT", "8080"),
-		DBHost:         getEnv("DB_HOST", "localhost"),
-		DBPort:         getEnv("DB_PORT", "5432"),
-		DBUser:         getEnv("DB_USER", "admin"),
-		DBPassword:     getEnv("DB_PASSWORD", "admin"),
-		DBName:         getEnv("DB_NAME", "chatapp"),
-		DBMaxOpenConns: getEnvInt("DB_MAX_CONNECTIONS", 10),
-		DBMaxIdleConns: getEnvInt("DB_MAX_IDLE_CONNECTIONS", 10),
-		DBMaxLifetime:  getEnvInt("DB_MAX_LIFETIME", 10),
-		DBMaxIdleTime:  getEnvInt("DB_MAX_IDLE_TIME", 10),
-		RedisHost:      getEnv("REDIS_HOST", "localhost"),
-		RedisPort:      getEnv("REDIS_PORT", "6379"),
-		JWTSecret:      getEnv("JWT_SECRET", "secret"),
-		JWTRefreshSec:  getEnv("JWT_REFRESH_SECRET", "refresh_secret"),
-		UploadDir:      getEnv("UPLOAD_DIR", "./uploads"),
+		Port:             getEnv("PORT", "8080"),
+		DBHost:           getEnv("DB_HOST", "localhost"),
+		DBPort:           getEnv("DB_PORT", "5432"),
+		DBUser:           getEnv("DB_USER", "admin"),
+		DBPassword:       getEnv("DB_PASSWORD", "admin"),
+		DBName:           getEnv("DB_NAME", "chatapp"),
+		DBMaxOpenConns:   getEnvInt("DB_MAX_CONNECTIONS", 10),
+		DBMaxIdleConns:   getEnvInt("DB_MAX_IDLE_CONNECTIONS", 10),
+		DBMaxLifetime:    getEnvInt("DB_MAX_LIFETIME", 10),
+		DBMaxIdleTime:    getEnvInt("DB_MAX_IDLE_TIME", 10),
+		RedisHost:        getEnv("REDIS_HOST", "localhost"),
+		RedisPort:        getEnv("REDIS_PORT", "6379"),
+		JWTSecret:        getEnv("JWT_SECRET", "secret"),
+		JWTRefreshSec:    getEnv("JWT_REFRESH_SECRET", "refresh_secret"),
+		UploadDir:        getEnv("UPLOAD_DIR", "./uploads"),
+		RateLimitByIP:    getEnvInt("RATE_LIMIT_BY_IP", 1),
+		RateLimitByToken: getEnvInt("RATE_LIMIT_BY_TOKEN", 1),
 	}
 }
 
