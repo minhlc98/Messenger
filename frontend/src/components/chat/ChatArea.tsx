@@ -46,7 +46,7 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
           `/conversations/${conversation.id}/messages?limit=50`
         );
         setMessages(conversation.id, res.data.data || []);
-      } catch {}
+      } catch { }
       setLoading(false);
     };
     fetch();
@@ -107,14 +107,8 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
           </div>
         ) : convMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full">
-            {conversation.is_group ? (
-              <>
-                {renderGroupBanner()}
-                <p className="text-gray-400 text-sm mt-2">Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!</p>
-              </>
-            ) : (
-              <p className="text-gray-400 text-sm">Chưa có tin nhắn nào. Hãy bắt đầu!</p>
-            )}
+            {renderGroupBanner()}
+            <p className="text-gray-400 text-sm mt-2">Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!</p>
           </div>
         ) : (
           <>

@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -18,6 +17,7 @@ const (
 	pongWait       = 60 * time.Second
 	pingPeriod     = (pongWait * 9) / 10
 	maxMessageSize = 1024 * 1024 // 1MB
+	redisChannel   = "ws_broadcast"
 )
 
 type Hub struct {
@@ -30,11 +30,9 @@ type Hub struct {
 	Redis      *redis.Client
 }
 
-type Client struct {
-	Hub    *Hub
-	Conn   *websocket.Conn
-	Send   chan []byte
-	UserID string
+type RedisBroadcastMsg struct {
+	UserIDs []string        `json:"user_ids"`
+	Payload json.RawMessage `json:"payload"`
 }
 
 func NewHub(db *gorm.DB, rdb *redis.Client) *Hub {
@@ -49,6 +47,8 @@ func NewHub(db *gorm.DB, rdb *redis.Client) *Hub {
 }
 
 func (h *Hub) Run() {
+	go h.subscribeRedis()
+
 	for {
 		select {
 		case client := <-h.Register:
@@ -174,33 +174,7 @@ func (h *Hub) handleChatMessage(msg dto.WSMessageType) {
 		return
 	}
 
-	// Collect stale clients to remove (can't delete while holding RLock)
-	var toRemove []string
-
-	h.mu.RLock()
-	for _, mID := range memberIDs {
-		if client, ok := h.Clients[mID]; ok {
-			select {
-			case client.Send <- outBytes:
-			default:
-				// Channel full — mark for removal
-				toRemove = append(toRemove, mID)
-			}
-		}
-	}
-	h.mu.RUnlock()
-
-	// Remove stale clients with a write lock
-	if len(toRemove) > 0 {
-		h.mu.Lock()
-		for _, mID := range toRemove {
-			if client, ok := h.Clients[mID]; ok {
-				close(client.Send)
-				delete(h.Clients, mID)
-			}
-		}
-		h.mu.Unlock()
-	}
+	h.publishToRedis(memberIDs, outBytes)
 }
 
 func (h *Hub) BroadcastToConversation(convID, excludeUserID string, payload map[string]interface{}) {
@@ -209,19 +183,13 @@ func (h *Hub) BroadcastToConversation(convID, excludeUserID string, payload map[
 	var memberIDs []string
 	h.DB.Raw("SELECT user_id FROM conversation_members WHERE conversation_id = ?", convID).Scan(&memberIDs)
 
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+	var targetIDs []string
 	for _, mID := range memberIDs {
-		if mID == excludeUserID {
-			continue
-		}
-		if client, ok := h.Clients[mID]; ok {
-			select {
-			case client.Send <- data:
-			default:
-			}
+		if mID != excludeUserID {
+			targetIDs = append(targetIDs, mID)
 		}
 	}
+	h.publishToRedis(targetIDs, data)
 }
 
 func (h *Hub) BroadcastToUsers(userIDs []string, payload map[string]interface{}) {
@@ -230,16 +198,7 @@ func (h *Hub) BroadcastToUsers(userIDs []string, payload map[string]interface{})
 		return
 	}
 
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	for _, uID := range userIDs {
-		if client, ok := h.Clients[uID]; ok {
-			select {
-			case client.Send <- data:
-			default:
-			}
-		}
-	}
+	h.publishToRedis(userIDs, data)
 }
 
 func (h *Hub) broadcastStatus(userID, status string) {
@@ -257,16 +216,7 @@ func (h *Hub) broadcastStatus(userID, status string) {
 		WHERE cm1.user_id = ? AND cm2.user_id != ? AND u.is_online = true
 	`, userID, userID).Scan(&memberIDs)
 
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	for _, mID := range memberIDs {
-		if client, ok := h.Clients[mID]; ok {
-			select {
-			case client.Send <- statusMsg:
-			default:
-			}
-		}
-	}
+	h.publishToRedis(memberIDs, statusMsg)
 }
 
 func (h *Hub) maintainOnlineStatus(userID string) {
@@ -284,65 +234,61 @@ func (h *Hub) maintainOnlineStatus(userID string) {
 	}
 }
 
-func (c *Client) ReadPump() {
-	defer func() {
-		c.Hub.Unregister <- c
-		c.Conn.Close()
-	}()
+func (h *Hub) publishToRedis(userIDs []string, payload []byte) {
+	if len(userIDs) == 0 {
+		return
+	}
 
-	c.Conn.SetReadLimit(maxMessageSize)
-	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.Conn.SetPongHandler(func(string) error {
-		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
-		return nil
-	})
+	msg := RedisBroadcastMsg{
+		UserIDs: userIDs,
+		Payload: payload,
+	}
 
-	for {
-		_, message, err := c.Conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("WS error user %s: %v", c.UserID, err)
-			}
-			break
-		}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Println("Failed to marshal redis broadcast message:", err)
+		return
+	}
 
-		var msg map[string]interface{}
-		if err := json.Unmarshal(message, &msg); err == nil {
-			msg["sender_id"] = c.UserID
-			updated, _ := json.Marshal(msg)
-			c.Hub.Broadcast <- updated
-		}
+	if err := h.Redis.Publish(context.Background(), redisChannel, data).Err(); err != nil {
+		log.Println("Failed to publish to redis:", err)
 	}
 }
 
-// WritePump: mỗi message gửi trong 1 WebSocket frame riêng biệt
-// → client nhận từng JSON object sạch, không bị concatenate
-func (c *Client) WritePump() {
-	ticker := time.NewTicker(pingPeriod)
-	defer func() {
-		ticker.Stop()
-		c.Conn.Close()
-	}()
+func (h *Hub) subscribeRedis() {
+	pubsub := h.Redis.Subscribe(context.Background(), redisChannel)
+	defer pubsub.Close()
 
-	for {
-		select {
-		case message, ok := <-c.Send:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if !ok {
-				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-			// Gửi từng message riêng biệt — không gộp
-			if err := c.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
-				return
-			}
+	ch := pubsub.Channel()
+	for msg := range ch {
+		var broadcastMsg RedisBroadcastMsg
+		if err := json.Unmarshal([]byte(msg.Payload), &broadcastMsg); err != nil {
+			log.Println("Invalid redis broadcast message:", err)
+			continue
+		}
 
-		case <-ticker.C:
-			// Ping để giữ kết nối sống
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				return
+		var toRemove []string
+		h.mu.RLock()
+		for _, uID := range broadcastMsg.UserIDs {
+			if client, ok := h.Clients[uID]; ok {
+				select {
+				case client.Send <- broadcastMsg.Payload:
+				default:
+					toRemove = append(toRemove, uID)
+				}
 			}
+		}
+		h.mu.RUnlock()
+
+		if len(toRemove) > 0 {
+			h.mu.Lock()
+			for _, uID := range toRemove {
+				if client, ok := h.Clients[uID]; ok {
+					close(client.Send)
+					delete(h.Clients, uID)
+				}
+			}
+			h.mu.Unlock()
 		}
 	}
 }

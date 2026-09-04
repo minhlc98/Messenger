@@ -41,7 +41,7 @@ export default function MessageBubble({ message, showAvatar, isGroup }: MessageB
         </div>
       )}
 
-      <div className={cn('max-w-[70%] flex flex-col', isOwn ? 'items-end' : 'items-start')}>
+      <div className={cn('max-w-[70%] flex flex-col mt-2', isOwn ? 'items-end' : 'items-start')}>
         {/* Sender name (only in group, for others) */}
         {!isOwn && isGroup && showAvatar && (
           <span className="text-xs text-gray-500 mb-1 ml-1">{message.sender?.name}</span>
