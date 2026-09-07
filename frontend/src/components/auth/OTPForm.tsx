@@ -95,6 +95,7 @@ export default function OTPForm({ email, onBack }: OTPFormProps) {
       const res = await api.post<AuthResponse>('/auth/verify-otp', {
         email,
         code,
+        action: 'REGISTER'
       });
 
       if (res.data.user && res.data.access_token && res.data.refresh_token) {
