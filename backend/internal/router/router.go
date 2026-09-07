@@ -31,9 +31,12 @@ func Setup(r *gin.Engine, db *gorm.DB, rdb *redis.Client, cfg *config.Config, hu
 	userRepository := repositories.NewUserRepository(db)
 	friendRepository := repositories.NewFriendRepository(db)
 	chatRepository := repositories.NewChatRepository(db)
+	otpRepository := repositories.NewOTPRepository(db)
 
+	emailService := services.NewEmailService(cfg)
+	otpService := services.NewOTPService(emailService, otpRepository)
 	userService := services.NewUserService(userRepository)
-	authService := services.NewAuthService(cfg, userRepository)
+	authService := services.NewAuthService(cfg, userRepository, otpRepository, otpService)
 	friendService := services.NewFriendService(friendRepository)
 	chatService := services.NewChatService(chatRepository)
 
@@ -56,6 +59,8 @@ func Setup(r *gin.Engine, db *gorm.DB, rdb *redis.Client, cfg *config.Config, hu
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/refresh", authHandler.Refresh)
+			auth.POST("/verify-otp", authHandler.VerifyOTP)
+			auth.POST("/resend-registration-otp", authHandler.ResendOTP)
 		}
 
 		// Protected routes

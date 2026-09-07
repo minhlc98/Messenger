@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { AuthResponse } from '@/types';
+import OTPForm from '@/components/auth/OTPForm';
 
 const loginSchema = z.object({
   email: z.string().email('Email không hợp lệ'),
@@ -21,6 +22,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { setAuth } = useAuthStore();
   const [error, setError] = useState('');
+  const [isOtpMode, setIsOtpMode] = useState(false);
+  const [emailForOtp, setEmailForOtp] = useState('');
 
   const {
     register,
@@ -34,12 +37,27 @@ export default function LoginPage() {
     try {
       setError('');
       const res = await api.post<AuthResponse>('/auth/login', data);
-      setAuth(res.data.user, res.data.access_token, res.data.refresh_token);
-      router.push('/chat');
+
+      if (res.data.require_otp) {
+        setEmailForOtp(data.email);
+        setIsOtpMode(true);
+        return;
+      }
+
+      if (res.data.user && res.data.access_token && res.data.refresh_token) {
+        setAuth(res.data.user, res.data.access_token, res.data.refresh_token);
+        router.push('/chat');
+      } else {
+        setError('Lỗi máy chủ: Thiếu token');
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Đăng nhập thất bại');
     }
   };
+
+  if (isOtpMode) {
+    return <OTPForm email={emailForOtp} onBack={() => setIsOtpMode(false)} />;
+  }
 
   return (
     <>

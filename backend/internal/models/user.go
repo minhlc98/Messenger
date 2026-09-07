@@ -13,6 +13,8 @@ type User struct {
 	Name         string    `gorm:"column:name" json:"name"`
 	AvatarURL    string    `gorm:"column:avatar_url" json:"avatar_url"`
 	IsOnline     bool      `gorm:"column:is_online" json:"is_online"`
+	IsVerified   bool      `gorm:"column:is_verified;default:false" json:"is_verified"`
+	IsActive     bool      `gorm:"column:is_active;default:true" json:"is_active"`
 	CreatedAt    time.Time `gorm:"column:created_at" json:"created_at"`
 }
 

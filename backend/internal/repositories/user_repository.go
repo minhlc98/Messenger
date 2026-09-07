@@ -34,7 +34,7 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) error {
 
 func (r *userRepository) GetByID(ctx context.Context, id string) (*models.User, error) {
 	var user models.User
-	err := r.db.WithContext(ctx).Where("id = ?", id).First(&user).Error
+	err := r.db.WithContext(ctx).Where("id = ? AND is_active = ?", id, true).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (r *userRepository) GetByID(ctx context.Context, id string) (*models.User, 
 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	var user models.User
-	err := r.db.WithContext(ctx).Where("email = ?", email).First(&user).Error
+	err := r.db.WithContext(ctx).Where("email = ? AND is_active = ?", email, true).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (r *userRepository) Delete(ctx context.Context, id string) error {
 
 func (r *userRepository) List(ctx context.Context, condition *paginations.UserPagination) (int64, []models.User, error) {
 	var users []models.User
-	query := r.db.WithContext(ctx)
+	query := r.db.WithContext(ctx).Where("is_active = ?", true)
 	if email := strings.TrimSpace(condition.Email); email != "" {
 		query = query.Where("email = ?", email)
 	}
@@ -106,6 +106,6 @@ func (r *userRepository) List(ctx context.Context, condition *paginations.UserPa
 
 func (r *userRepository) SearchUsers(ctx context.Context, email string) ([]models.User, error) {
 	var users []models.User
-	err := r.db.WithContext(ctx).Where("email ILIKE ?", "%"+email+"%").Find(&users).Error
+	err := r.db.WithContext(ctx).Where("email ILIKE ? AND is_active = ?", "%"+email+"%", true).Find(&users).Error
 	return users, err
 }

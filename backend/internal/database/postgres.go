@@ -110,6 +110,7 @@ func RunMigrations(db *gorm.DB) error {
 		&models.Conversation{},
 		&models.ConversationMember{},
 		&models.Message{},
+		&models.OTP{},
 	); err != nil {
 		return fmt.Errorf("failed to auto-migrate models: %w", err)
 	}

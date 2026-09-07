@@ -64,3 +64,35 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 
 	c.JSON(http.StatusOK, result)
 }
+
+func (h *AuthHandler) VerifyOTP(c *gin.Context) {
+	var req dto.VerifyOTPRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	result, err := h.authService.VerifyOTP(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *AuthHandler) ResendOTP(c *gin.Context) {
+	var req dto.ResendRegistrationOTPRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.authService.ResendRegistrationOTP(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "OTP sent"})
+}

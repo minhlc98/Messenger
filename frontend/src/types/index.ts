@@ -61,7 +61,8 @@ export interface ApiResponse<T> {
 }
 
 export interface AuthResponse {
-  access_token: string;
-  refresh_token: string;
-  user: User;
+  require_otp: boolean;
+  access_token?: string;
+  refresh_token?: string;
+  user?: User;
 }

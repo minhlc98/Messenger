@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #333333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: #2563eb;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .content {
+            padding: 30px;
+            text-align: center;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1e293b;
+        }
+
+        .message {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #475569;
+            margin-bottom: 30px;
+        }
+
+        .otp-box {
+            background-color: #f8fafc;
+            border: 2px dashed #3b82f6;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 0 auto;
+            max-width: 250px;
+        }
+
+        .otp-code {
+            font-size: 42px;
+            font-weight: bold;
+            color: #2563eb;
+            letter-spacing: 10px;
+            margin: 0;
+        }
+
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Messenger</h2>
+        </div>
+        <div class="content">
+            <div class="title">Xác thực địa chỉ email</div>
+            <div class="message">
+                Chào bạn,<br><br>
+                Cảm ơn bạn đã đăng ký tài khoản. Vui lòng sử dụng mã xác thực dưới đây để hoàn tất quá trình đăng ký.
+            </div>
+            <div class="otp-box">
+                <p class="otp-code">%s</p>
+            </div>
+            <div class="message" style="margin-top: 30px; font-size: 14px; color: #ef4444;">
+                Mã xác thực này sẽ hết hạn trong vòng <strong>2 phút</strong>.<br>
+                Vui lòng không chia sẻ mã này với bất kỳ ai.
+            </div>
+        </div>
+        <div class="footer">
+            Nếu bạn không yêu cầu email này, bạn có thể bỏ qua nó một cách an toàn.
+        </div>
+    </div>
+</body>
+
+</html>

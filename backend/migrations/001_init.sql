@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(100) NOT NULL,
     avatar_url TEXT DEFAULT '',
     is_online BOOLEAN DEFAULT FALSE,
+    is_verified BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -51,3 +53,15 @@ CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_friendships_requester ON friendships(requester_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_addressee ON friendships(addressee_id);
 CREATE INDEX IF NOT EXISTS idx_conversation_members_user ON conversation_members(user_id);
+
+CREATE TABLE IF NOT EXISTS otps (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email VARCHAR(255) NOT NULL,
+    code VARCHAR(10) NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_otps_email ON otps(email);
+CREATE INDEX IF NOT EXISTS idx_otps_action ON otps(action);
