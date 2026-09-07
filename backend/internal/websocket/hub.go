@@ -21,7 +21,7 @@ const (
 )
 
 type Hub struct {
-	Clients    map[string]*Client
+	Clients    map[string]map[*Client]bool
 	Broadcast  chan []byte
 	Register   chan *Client
 	Unregister chan *Client
@@ -37,7 +37,7 @@ type RedisBroadcastMsg struct {
 
 func NewHub(db *gorm.DB, rdb *redis.Client) *Hub {
 	return &Hub{
-		Clients:    make(map[string]*Client),
+		Clients:    make(map[string]map[*Client]bool),
 		Broadcast:  make(chan []byte, 256),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
@@ -53,26 +53,37 @@ func (h *Hub) Run() {
 		select {
 		case client := <-h.Register:
 			h.mu.Lock()
-			if existing, ok := h.Clients[client.UserID]; ok {
-				existing.Conn.Close()
+			if h.Clients[client.UserID] == nil {
+				h.Clients[client.UserID] = make(map[*Client]bool)
 			}
-			h.Clients[client.UserID] = client
+			h.Clients[client.UserID][client] = true
+			isFirstConnection := len(h.Clients[client.UserID]) == 1
 			h.mu.Unlock()
 
-			h.DB.Exec("UPDATE users SET is_online = true WHERE id = ?", client.UserID)
-
-			h.broadcastStatus(client.UserID, "online")
+			if isFirstConnection {
+				h.DB.Exec("UPDATE users SET is_online = true WHERE id = ?", client.UserID)
+				h.broadcastStatus(client.UserID, "online")
+			}
 
 		case client := <-h.Unregister:
 			h.mu.Lock()
-			if _, ok := h.Clients[client.UserID]; ok {
-				delete(h.Clients, client.UserID)
-				close(client.Send)
+			isLastConnection := false
+			if userClients, ok := h.Clients[client.UserID]; ok {
+				if _, exists := userClients[client]; exists {
+					delete(userClients, client)
+					close(client.Send)
+					if len(userClients) == 0 {
+						delete(h.Clients, client.UserID)
+						isLastConnection = true
+					}
+				}
 			}
 			h.mu.Unlock()
 
-			h.DB.Exec("UPDATE users SET is_online = false WHERE id = ?", client.UserID)
-			h.broadcastStatus(client.UserID, "offline")
+			if isLastConnection {
+				h.DB.Exec("UPDATE users SET is_online = false WHERE id = ?", client.UserID)
+				h.broadcastStatus(client.UserID, "offline")
+			}
 
 		case message := <-h.Broadcast:
 			h.handleBroadcast(message)
@@ -267,28 +278,25 @@ func (h *Hub) subscribeRedis() {
 			continue
 		}
 
-		var toRemove []string
+		var toRemove []*Client
 		h.mu.RLock()
 		for _, uID := range broadcastMsg.UserIDs {
-			if client, ok := h.Clients[uID]; ok {
-				select {
-				case client.Send <- broadcastMsg.Payload:
-				default:
-					toRemove = append(toRemove, uID)
+			if userClients, ok := h.Clients[uID]; ok {
+				for client := range userClients {
+					select {
+					case client.Send <- broadcastMsg.Payload:
+					default:
+						toRemove = append(toRemove, client)
+					}
 				}
 			}
 		}
 		h.mu.RUnlock()
 
-		if len(toRemove) > 0 {
-			h.mu.Lock()
-			for _, uID := range toRemove {
-				if client, ok := h.Clients[uID]; ok {
-					close(client.Send)
-					delete(h.Clients, uID)
-				}
-			}
-			h.mu.Unlock()
+		for _, client := range toRemove {
+			go func(c *Client) {
+				h.Unregister <- c
+			}(client)
 		}
 	}
 }
