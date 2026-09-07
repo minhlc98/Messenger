@@ -32,7 +32,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-white">ChatApp</h1>
+          <h1 className="text-3xl font-bold text-white">Messenger</h1>
           <p className="text-slate-400 mt-1">Kết nối mọi lúc, mọi nơi</p>
         </div>
 

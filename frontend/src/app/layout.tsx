@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'ChatApp',
+  title: 'Messenger',
   description: 'Real-time chat application',
 };
 

@@ -56,7 +56,7 @@ export default function Sidebar() {
       {/* Header */}
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-white font-bold text-lg">ChatApp</h1>
+          <h1 className="text-white font-bold text-lg">Messenger</h1>
           <button
             onClick={() => setShowNewChat(true)}
             className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
