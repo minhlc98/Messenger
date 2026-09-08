@@ -13,6 +13,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ses"
 	"github.com/aws/aws-sdk-go-v2/service/ses/types"
+	"github.com/resend/resend-go/v4"
 )
 
 type EmailService interface {
@@ -20,22 +21,17 @@ type EmailService interface {
 }
 
 type emailService struct {
-	client        *ses.Client
+	client        *resend.Client
 	defaultSender string
 	cfg           *config.Config
 }
 
 func NewEmailService(cfg *config.Config) EmailService {
-	awsCfg, err := awsconfig.LoadDefaultConfig(context.TODO())
-	if err != nil {
-		log.Printf("unable to load AWS SDK config, %v", err)
-	}
+	client := resend.NewClient(cfg.ResendAPIKey)
 
-	client := ses.NewFromConfig(awsCfg)
-
-	defaultSender := os.Getenv("AWS_SES_SENDER_EMAIL")
+	defaultSender := os.Getenv("SENDER_EMAIL")
 	if defaultSender == "" {
-		log.Println("WARNING: AWS_SES_SENDER_EMAIL is empty. Email sending may fail.")
+		log.Println("WARNING: SENDER_EMAIL is empty. Email sending may fail.")
 	}
 
 	return &emailService{
@@ -46,6 +42,53 @@ func NewEmailService(cfg *config.Config) EmailService {
 }
 
 func (s *emailService) Send(ctx context.Context, emailPayload dto.EmailPayload) error {
+	sender := s.defaultSender
+	if emailPayload.FromEmailAddress != nil {
+		sender = *emailPayload.FromEmailAddress
+	}
+
+	params := &resend.SendEmailRequest{
+		From:    sender,
+		To:      emailPayload.ToEmail,
+		Subject: emailPayload.Subject,
+		Html:    emailPayload.Content,
+	}
+
+	_, err := s.client.Emails.SendWithContext(ctx, params)
+	if err != nil {
+		return fmt.Errorf("failed to send email: %w", err)
+	}
+
+	return nil
+}
+
+type emailSESService struct {
+	client        *ses.Client
+	defaultSender string
+	cfg           *config.Config
+}
+
+func NewEmailSESService(cfg *config.Config) EmailService {
+	awsCfg, err := awsconfig.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		log.Printf("unable to load AWS SDK config, %v", err)
+	}
+
+	client := ses.NewFromConfig(awsCfg)
+
+	defaultSender := os.Getenv("SENDER_EMAIL")
+	if defaultSender == "" {
+		log.Println("WARNING: SENDER_EMAIL is empty. Email sending may fail.")
+	}
+
+	return &emailSESService{
+		client:        client,
+		cfg:           cfg,
+		defaultSender: defaultSender,
+	}
+}
+
+func (s *emailSESService) Send(ctx context.Context, emailPayload dto.EmailPayload) error {
 	sender := s.defaultSender
 	if emailPayload.FromEmailAddress != nil {
 		sender = *emailPayload.FromEmailAddress

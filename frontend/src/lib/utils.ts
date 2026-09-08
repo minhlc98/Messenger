@@ -9,13 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatMessageTime(dateStr: string): string {
   const date = new Date(dateStr);
-  if (isToday(date)) {
-    return format(date, 'HH:mm');
-  }
-  if (isYesterday(date)) {
-    return 'Hôm qua ' + format(date, 'HH:mm');
-  }
-  return format(date, 'dd/MM/yyyy HH:mm');
+  return format(date, 'HH:mm');
 }
 
 export function formatConversationTime(dateStr?: string): string {

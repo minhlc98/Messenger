@@ -26,6 +26,7 @@ type Config struct {
 	UploadDir        string
 	RateLimitByIP    int
 	RateLimitByToken int
+	ResendAPIKey     string
 }
 
 func Load() *Config {
@@ -52,6 +53,7 @@ func Load() *Config {
 		UploadDir:        getEnv("UPLOAD_DIR", "./uploads"),
 		RateLimitByIP:    getEnvInt("RATE_LIMIT_BY_IP", 1),
 		RateLimitByToken: getEnvInt("RATE_LIMIT_BY_TOKEN", 1),
+		ResendAPIKey:     getEnv("RESEND_API_KEY", ""),
 	}
 }
 

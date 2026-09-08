@@ -126,20 +126,20 @@ export default function MessageInput({ conversationId }: MessageInputProps) {
   };
 
   return (
-    <div className="px-4 py-3 border-t border-gray-100 bg-white">
-      <div className="flex items-end gap-2 bg-gray-50 rounded-2xl border border-gray-200 px-3 py-2">
+    <div className="px-4 py-3 border-t border-slate-100 bg-white shadow-xs">
+      <div className="flex items-end gap-2 bg-slate-50/80 rounded-2xl border border-slate-200/80 px-3.5 py-2 focus-within:border-indigo-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100/60 transition-all duration-150">
         {/* Attachment buttons */}
         <div className="flex gap-1 pb-0.5">
           <button
             onClick={() => imageInputRef.current?.click()}
-            className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50/50 transition-colors"
             title="Gửi hình ảnh"
           >
             <Image className="w-5 h-5" />
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50/50 transition-colors"
             title="Gửi tệp"
           >
             <Paperclip className="w-5 h-5" />
@@ -156,7 +156,7 @@ export default function MessageInput({ conversationId }: MessageInputProps) {
           onKeyDown={handleKeyDown}
           placeholder="Nhập tin nhắn... (Enter để gửi, Shift+Enter xuống dòng)"
           rows={1}
-          className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 focus:outline-none resize-none max-h-32 overflow-y-auto leading-relaxed py-1"
+          className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none resize-none max-h-32 overflow-y-auto leading-relaxed py-1"
           style={{ minHeight: '24px' }}
         />
 
@@ -164,7 +164,7 @@ export default function MessageInput({ conversationId }: MessageInputProps) {
         <button
           onClick={handleSend}
           disabled={!text.trim() || isSending}
-          className="p-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white rounded-xl transition-colors flex-shrink-0"
+          className="p-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 text-white rounded-xl shadow-xs shadow-indigo-500/20 disabled:shadow-none transition-all flex-shrink-0 active:scale-95"
         >
           <Send className="w-4 h-4" />
         </button>
