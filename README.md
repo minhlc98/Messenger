@@ -1,166 +1,277 @@
-# Chat App
+# 💬 Chat App
 
-Ứng dụng chat thời gian thực với Go Backend + Next.js Frontend.
+A real-time chat application built with **Go** backend and **Next.js** frontend, featuring WebSocket-powered messaging, friend management, group conversations, and OTP-based email verification.
 
-## Tính năng
-- ✅ Đăng ký / Đăng nhập bằng email & password (JWT)
-- ✅ Tìm kiếm bạn bè, gửi lời mời kết bạn
-- ✅ Cập nhật avatar và tên
-- ✅ Chat 1-1 và chat nhóm
-- ✅ Trạng thái Online/Offline (Redis)
-- ✅ Real-time qua WebSocket
-- ✅ Gửi hình ảnh, file (mở rộng sau)
-- 🔜 Video call, ghi âm (sẽ thêm sau)
+---
 
-## Tech Stack
+## ✨ Features
+
+| Status | Feature |
+|--------|---------|
+| ✅ | Register / Login with email & password (JWT) |
+| ✅ | OTP email verification on registration |
+| ✅ | Search users, send & manage friend requests |
+| ✅ | Update display name and avatar |
+| ✅ | 1-on-1 and group conversations |
+| ✅ | Online / Offline presence tracking (Redis) |
+| ✅ | Real-time messaging via WebSocket |
+| ✅ | File & image uploads in chat |
+| ✅ | Rate limiting by IP and JWT token |
+| 🔜 | Video calls & voice recording |
+
+---
+
+## 🏗️ Tech Stack
+
 | Layer | Technology |
 |-------|-----------|
-| Backend | Go 1.25, Gin, gorilla/websocket |
-| Database | PostgreSQL 16 |
-| Cache | Redis 7 |
-| Auth | JWT (access + refresh token) |
-| Frontend | Next.js 14, TypeScript, Tailwind CSS |
-| State | Zustand |
-| Containerization | Docker Compose |
+| **Backend** | Go 1.25, Gin, gorilla/websocket, GORM |
+| **Database** | PostgreSQL 16 |
+| **Cache / Presence** | Redis 7 |
+| **Auth** | JWT (access + refresh token), OTP via AWS SES |
+| **Frontend** | Next.js 14, TypeScript, Tailwind CSS |
+| **State Management** | Zustand |
+| **Form Handling** | React Hook Form + Zod |
+| **Containerization** | Docker Compose |
 
-## Cài đặt nhanh
+---
 
-### Chạy bằng Docker Compose (Khuyến nghị)
+## 🚀 Quick Start
+
+### Option 1: Docker Compose (Recommended)
+
 ```bash
-# Khởi động toàn bộ stack
+# Start the full stack
 docker-compose up -d
 
-# Xem logs
+# View logs
 docker-compose logs -f
 
-# Dừng
+# Stop all services
 docker-compose down
 ```
 
-Truy cập:
+Access the app:
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8080/api
 
 ---
 
-### Chạy local (Development)
+### Option 2: Local Development
 
-**Yêu cầu:** Go 1.25+, Node.js 18+, PostgreSQL, Redis
+**Prerequisites:** Go 1.25+, Node.js 18+, PostgreSQL 16, Redis 7
 
-#### 1. Khởi động PostgreSQL và Redis
+#### 1. Start PostgreSQL and Redis
+
 ```bash
-# Chỉ chạy DB bằng Docker
+# Run only the databases via Docker
 docker-compose up -d postgres redis
 ```
 
 #### 2. Backend
+
 ```bash
 cd backend
 
-# Copy env
+# Copy and configure environment variables
 cp .env.example .env
+# Edit .env with your DB credentials, JWT secrets, etc.
 
-# Tải dependencies
+# Download dependencies
 go mod download
 
-# Chạy server
+# Start the backend server (auto-runs DB migrations)
 go run cmd/server/main.go
 ```
-Backend sẽ tự động tạo tables trong DB khi khởi động.
 
 #### 3. Frontend
+
 ```bash
 cd frontend
 
-# Cài dependencies
+# Install dependencies
 npm install
 
-# Chạy dev server
+# Start the dev server
 npm run dev
 ```
 
 ---
 
-## Cấu trúc project
+## ⚙️ Environment Variables
+
+Copy `backend/.env.example` to `backend/.env` and fill in the values:
+
+```env
+TZ=Asia/Ho_Chi_Minh
+PORT=4000
+
+# PostgreSQL
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=your_user
+DB_PASSWORD=your_password
+DB_NAME=chatapp
+DB_SSL_MODE=disable
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# JWT
+JWT_SECRET=your_jwt_secret
+JWT_REFRESH_SECRET=your_refresh_secret
+
+# File Uploads
+UPLOAD_DIR=./uploads
+
+# Rate Limiting (requests per minute)
+RATE_LIMIT_BY_IP=5
+RATE_LIMIT_BY_TOKEN=5
+```
+
+---
+
+## 📁 Project Structure
 
 ```
 Chat/
 ├── backend/
 │   ├── cmd/server/main.go          # Entry point
 │   ├── internal/
-│   │   ├── config/                 # Config từ env
-│   │   ├── database/               # PostgreSQL + Redis connections
-│   │   ├── handlers/               # HTTP handlers
-│   │   ├── middleware/             # JWT auth middleware
-│   │   ├── models/                 # Data models
+│   │   ├── config/                 # Environment config loader
+│   │   ├── constants/              # Shared constants
+│   │   ├── database/               # PostgreSQL & Redis connections
+│   │   ├── dto/                    # Request/Response data transfer objects
+│   │   ├── handlers/               # HTTP request handlers (Gin)
+│   │   ├── middleware/             # JWT auth & rate-limit middleware
+│   │   ├── models/                 # GORM data models
+│   │   ├── paginations/            # Pagination helpers
+│   │   ├── repositories/           # Database access layer
 │   │   ├── router/                 # Route definitions
-│   │   └── websocket/              # WebSocket hub
-│   ├── migrations/                 # SQL migrations
-│   ├── uploads/                    # User uploaded files
+│   │   ├── services/               # Business logic layer
+│   │   ├── templates/              # Email HTML templates
+│   │   └── websocket/              # WebSocket hub & client management
+│   ├── migrations/                 # SQL migration files
+│   ├── scripts/                    # Utility scripts
+│   ├── uploads/                    # User-uploaded files (runtime)
+│   ├── .env.example                # Environment variable template
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
-│   │   ├── app/                    # Next.js App Router
-│   │   ├── components/             # React components
-│   │   ├── hooks/                  # Custom hooks
-│   │   ├── lib/                    # Utilities & API client
-│   │   ├── store/                  # Zustand stores
-│   │   └── types/                  # TypeScript types
+│   │   ├── app/                    # Next.js App Router (pages & layouts)
+│   │   ├── components/             # Reusable React components
+│   │   ├── hooks/                  # Custom React hooks
+│   │   ├── lib/                    # Utilities & Axios API client
+│   │   ├── store/                  # Zustand global state stores
+│   │   └── types/                  # TypeScript type definitions
 │   └── Dockerfile
-└── docker-compose.yml
+├── docker-compose.yml              # Production compose config
+├── docker-compose.dev.yml          # Development compose config
+└── README.md
 ```
 
-## API Endpoints
+---
+
+## 📡 API Reference
+
+All protected endpoints require the `Authorization: Bearer <access_token>` header.
 
 ### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Đăng ký |
-| POST | `/api/auth/login` | Đăng nhập |
-| POST | `/api/auth/refresh` | Refresh token |
-| POST | `/api/auth/logout` | Đăng xuất |
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/auth/register` | ❌ | Register a new account |
+| POST | `/api/auth/login` | ❌ | Login and receive tokens |
+| POST | `/api/auth/refresh` | ❌ | Refresh the access token |
+| POST | `/api/auth/verify-otp` | ❌ | Verify OTP after registration |
+| POST | `/api/auth/resend-registration-otp` | ❌ | Resend registration OTP |
 
 ### Users
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/users/me` | Lấy thông tin bản thân |
-| PUT | `/api/users/me` | Cập nhật tên |
-| PUT | `/api/users/me/avatar` | Upload avatar |
-| GET | `/api/users/search?email=` | Tìm user |
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/users/me` | ✅ | Get current user profile |
+| PUT | `/api/users/me` | ✅ | Update display name |
+| PUT | `/api/users/me/avatar` | ✅ | Upload profile avatar |
+| GET | `/api/users/search?email=` | ✅ | Search users by email |
+| GET | `/api/users/:id` | ✅ | Get user profile by ID |
 
 ### Friends
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/friends` | Danh sách bạn bè |
-| POST | `/api/friends/request` | Gửi lời mời |
-| GET | `/api/friends/requests` | Lời mời đang chờ |
-| PUT | `/api/friends/requests/:id/accept` | Chấp nhận |
-| PUT | `/api/friends/requests/:id/reject` | Từ chối |
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/friends` | ✅ | List all friends |
+| POST | `/api/friends/request` | ✅ | Send a friend request |
+| GET | `/api/friends/requests` | ✅ | List pending friend requests |
+| PUT | `/api/friends/requests/:id/accept` | ✅ | Accept a friend request |
+| PUT | `/api/friends/requests/:id/reject` | ✅ | Reject a friend request |
 
 ### Conversations
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/conversations` | Danh sách cuộc trò chuyện |
-| POST | `/api/conversations` | Tạo cuộc trò chuyện |
-| GET | `/api/conversations/:id/messages` | Lấy tin nhắn |
-| POST | `/api/conversations/:id/members` | Thêm thành viên |
 
-### WebSocket
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/conversations` | ✅ | List all conversations |
+| POST | `/api/conversations` | ✅ | Create a new conversation |
+| GET | `/api/conversations/:id` | ✅ | Get conversation details |
+| GET | `/api/conversations/:id/messages` | ✅ | Get paginated messages |
+| POST | `/api/conversations/:id/members` | ✅ | Add members to a group |
+| POST | `/api/conversations/:id/upload` | ✅ | Upload a file to a conversation |
+
+---
+
+## 🔌 WebSocket
+
+Connect using the JWT access token as a query parameter:
+
 ```
 WS /ws?token=<jwt_access_token>
 ```
 
-**Message format gửi đi:**
+### Sending Events (Client → Server)
+
 ```json
-{"type": "message", "conversation_id": "...", "content": "Hello!", "message_type": "text"}
-{"type": "typing", "conversation_id": "..."}
-{"type": "read", "conversation_id": "...", "message_id": "..."}
+// Send a chat message
+{ "type": "message", "conversation_id": "uuid", "content": "Hello!", "message_type": "text" }
+
+// Indicate typing
+{ "type": "typing", "conversation_id": "uuid" }
+
+// Mark message as read
+{ "type": "read", "conversation_id": "uuid", "message_id": "uuid" }
 ```
 
-**Message format nhận về:**
+### Receiving Events (Server → Client)
+
 ```json
-{"type": "message", "message": {...}}
-{"type": "typing", "conversation_id": "...", "user_id": "..."}
-{"type": "online", "user_id": "..."}
-{"type": "offline", "user_id": "..."}
+// New message received
+{ "type": "message", "message": { ...messageObject } }
+
+// Another user is typing
+{ "type": "typing", "conversation_id": "uuid", "user_id": "uuid" }
+
+// User came online
+{ "type": "online", "user_id": "uuid" }
+
+// User went offline
+{ "type": "offline", "user_id": "uuid" }
 ```
+
+---
+
+## 🗄️ Data Models
+
+| Model | Description |
+|-------|-------------|
+| `User` | Account info: email, hashed password, display name, avatar |
+| `Friendship` | Friend relationships and request statuses |
+| `Conversation` | 1-on-1 or group chat container |
+| `ConversationMember` | Membership / participant records |
+| `Message` | Individual chat messages with type (text / file / image) |
+| `OTP` | One-time passwords for email verification |
+
+---
+
+## 📜 License
+
+This project is open source. Feel free to use and modify it.

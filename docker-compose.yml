@@ -45,13 +45,26 @@ services:
       redis:
         condition: service_healthy
     environment:
-      PORT: 8080
-      DB_URL: postgres://admin:admin@postgres:5432/chatapp?sslmode=disable
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: 6bb01df2bd4e7bbbe33cde0c7d9c5a83076f78bc42787256709d5dc2805d15fc
-      JWT_REFRESH_SECRET: e0f4cd0561a4b1b22ef14fbf250aa2c5397d6c4fb3cf21ce4f3e0578112bbb8e
-      UPLOAD_DIR: /app/uploads
       TZ: Asia/Ho_Chi_Minh
+      PORT: 8080
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: admin
+      DB_PASSWORD: admin
+      DB_NAME: chatapp
+      DB_SSL_MODE: disable
+      DB_MAX_IDLE_CONNECTIONS: 5
+      DB_MAX_CONNECTIONS: 10
+      DB_MAX_LIFETIME: 10
+      DB_MAX_IDLE_TIME: 10
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: JWT_SECRET
+      JWT_REFRESH_SECRET: JWT_REFRESH_SECRET
+      UPLOAD_DIR: /app/uploads
+      RATE_LIMIT_BY_IP: 5
+      RATE_LIMIT_BY_TOKEN: 6
+      AWS_SES_SENDER_EMAIL: AWS_SES_SENDER_EMAIL
     ports:
       - "8080:8080"
     volumes:
