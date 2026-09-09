@@ -31,6 +31,7 @@ export function useWebSocketInit() {
     updateConversationLastMessage,
     setTyping,
     addConversation,
+    updateConversation,
     setOnlineUser,
     incrementPendingFriendRequestsCount,
   } = useChatStore();
@@ -65,6 +66,16 @@ export function useWebSocketInit() {
           case 'new_conversation':
             if (data.conversation) {
               addConversation(data.conversation);
+            }
+            break;
+
+          case 'conversation_updated':
+            if (data.conversation) {
+              updateConversation(data.conversation);
+            }
+            if (data.message && data.conversation_id) {
+              addMessage(data.conversation_id, data.message);
+              updateConversationLastMessage(data.conversation_id, data.message);
             }
             break;
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, UIEvent } from 'react';
 import { useChatStore } from '@/store/chat';
 import { useAuthStore } from '@/store/auth';
 import MessageBubble, { BubblePosition } from './MessageBubble';
@@ -10,6 +10,7 @@ import { Conversation, Message } from '@/types';
 import api from '@/lib/api';
 import { Users } from 'lucide-react';
 import { isToday, isYesterday, format, isSameDay } from 'date-fns';
+import GroupDetailModal from '@/components/modals/GroupDetailModal';
 
 interface ChatAreaProps {
   conversation: Conversation;
@@ -42,10 +43,13 @@ function getBubblePosition(
 }
 
 export default function ChatArea({ conversation }: ChatAreaProps) {
-  const { messages, setMessages, typingUsers } = useChatStore();
+  const { messages, setMessages, typingUsers, setHasMore, hasMore, prependMessages } = useChatStore();
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [showGroupModal, setShowGroupModal] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isFirstLoad = useRef(true);
 
   const convMessages = messages[conversation.id] || [];
@@ -72,12 +76,54 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
         const res = await api.get<{ data: Message[] }>(
           `/conversations/${conversation.id}/messages?limit=50`
         );
-        setMessages(conversation.id, res.data.data || []);
+        const fetchedMessages = res.data.data || [];
+        setMessages(conversation.id, fetchedMessages);
+        if (fetchedMessages.length < 50) {
+          setHasMore(conversation.id, false);
+        } else {
+          setHasMore(conversation.id, true);
+        }
       } catch { }
       setLoading(false);
     };
     fetch();
-  }, [conversation.id, setMessages]);
+  }, [conversation.id, setMessages, setHasMore]);
+
+  // Handle scroll to top
+  const handleScroll = async (e: UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    if (target.scrollTop === 0 && !loadingMore && !loading && convMessages.length > 0 && hasMore[conversation.id] !== false) {
+      setLoadingMore(true);
+      const firstMsgId = convMessages[0].id;
+      
+      try {
+        const res = await api.get<{ data: Message[] }>(
+          `/conversations/${conversation.id}/messages?limit=50&before=${firstMsgId}`
+        );
+        
+        const olderMessages = res.data.data || [];
+        if (olderMessages.length < 50) {
+          setHasMore(conversation.id, false);
+        } else {
+          setHasMore(conversation.id, true);
+        }
+        
+        if (olderMessages.length > 0) {
+          const scrollHeightBefore = target.scrollHeight;
+          prependMessages(conversation.id, olderMessages);
+          
+          requestAnimationFrame(() => {
+            if (scrollContainerRef.current) {
+              const scrollHeightAfter = scrollContainerRef.current.scrollHeight;
+              scrollContainerRef.current.scrollTop = scrollHeightAfter - scrollHeightBefore;
+            }
+          });
+        }
+      } catch { }
+      
+      setLoadingMore(false);
+    }
+  };
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -98,10 +144,18 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
     if (!conversation.is_group) return null;
     return (
       <div className="flex flex-col items-center justify-center pt-3 pb-6 text-center select-none">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100/80 border border-indigo-200/60 flex items-center justify-center mb-3 shadow-xs text-indigo-600">
+        <div
+          onClick={() => setShowGroupModal(true)}
+          className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100/80 border border-indigo-200/60 flex items-center justify-center mb-3 shadow-xs text-indigo-600 cursor-pointer hover:scale-105 hover:shadow-md transition-all"
+          title="Xem thông tin & thành viên nhóm"
+        >
           <Users className="w-7 h-7" />
         </div>
-        <h3 className="text-base font-bold text-slate-800 mb-1 tracking-tight">
+        <h3
+          onClick={() => setShowGroupModal(true)}
+          className="text-base font-bold text-slate-800 mb-1 tracking-tight cursor-pointer hover:text-indigo-600 transition-colors"
+          title="Xem thông tin & thành viên nhóm"
+        >
           {conversation.name || 'Nhóm chat'}
         </h3>
         <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/80 backdrop-blur-xs text-slate-600 rounded-full text-xs font-medium border border-slate-200/70 shadow-xs">
@@ -124,10 +178,17 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc]">
-      <ChatHeader conversation={conversation} />
+      <ChatHeader
+        conversation={conversation}
+        onOpenGroupDetail={() => setShowGroupModal(true)}
+      />
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto scrollbar-chat px-4 sm:px-6 py-4">
+      <div 
+        className="flex-1 overflow-y-auto scrollbar-chat px-4 sm:px-6 py-4"
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+      >
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
@@ -140,6 +201,12 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
         ) : (
           <>
             {renderGroupBanner()}
+
+            {loadingMore && (
+              <div className="flex items-center justify-center py-2">
+                <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
 
             {convMessages.map((msg, idx) => {
               const prevMsg = idx > 0 ? convMessages[idx - 1] : null;
@@ -196,6 +263,14 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
       </div>
 
       <MessageInput conversationId={conversation.id} />
+
+      {conversation.is_group && (
+        <GroupDetailModal
+          isOpen={showGroupModal}
+          onClose={() => setShowGroupModal(false)}
+          conversation={conversation}
+        />
+      )}
     </div>
   );
 }

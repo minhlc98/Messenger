@@ -17,6 +17,7 @@ type ChatService interface {
 	GetMessages(ctx context.Context, convID uuid.UUID, before string, limit int) ([]models.Message, error)
 	CheckAdminRole(ctx context.Context, convID uuid.UUID, userID string) (bool, error)
 	AddMembers(ctx context.Context, convID uuid.UUID, memberIDs []string) error
+	UpdateConversation(ctx context.Context, convID uuid.UUID, name string) (*models.Conversation, error)
 	CreateMessage(ctx context.Context, msg *models.Message) error
 	GetMessage(ctx context.Context, msgID uuid.UUID) (*models.Message, error)
 }
@@ -55,6 +56,10 @@ func (s *chatService) CheckAdminRole(ctx context.Context, convID uuid.UUID, user
 
 func (s *chatService) AddMembers(ctx context.Context, convID uuid.UUID, memberIDs []string) error {
 	return s.chatRepo.AddMembers(ctx, convID, memberIDs)
+}
+
+func (s *chatService) UpdateConversation(ctx context.Context, convID uuid.UUID, name string) (*models.Conversation, error) {
+	return s.chatRepo.UpdateConversation(ctx, convID, name)
 }
 
 func (s *chatService) CreateMessage(ctx context.Context, msg *models.Message) error {

@@ -41,7 +41,7 @@ export interface Message {
 }
 
 export interface WSMessage {
-  type: 'message' | 'typing' | 'read' | 'online' | 'offline' | 'new_conversation' | 'friend_request';
+  type: 'message' | 'typing' | 'read' | 'online' | 'offline' | 'new_conversation' | 'conversation_updated' | 'friend_request';
   conversation_id?: string;
   conversation?: Conversation;
   message?: Message;

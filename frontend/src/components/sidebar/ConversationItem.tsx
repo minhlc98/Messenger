@@ -28,8 +28,8 @@ export default function ConversationItem({ conversation }: ConversationItemProps
     : otherMember?.name || 'Unknown';
 
   const displayAvatar = conversation.is_group ? conversation.avatar_url : otherMember?.avatar_url;
-  const isOnline = !conversation.is_group && otherMember 
-    ? (onlineUsers[otherMember.id] ?? otherMember.is_online) 
+  const isOnline = !conversation.is_group && otherMember
+    ? (onlineUsers[otherMember.id] ?? otherMember.is_online)
     : undefined;
 
   const lastMsg = conversation.last_message;
@@ -37,10 +37,12 @@ export default function ConversationItem({ conversation }: ConversationItemProps
     ? lastMsg.type === 'text'
       ? truncate(lastMsg.content, 40)
       : lastMsg.type === 'image'
-      ? '🖼 Hình ảnh'
-      : lastMsg.type === 'audio'
-      ? '🎙 Ghi âm'
-      : '📎 Tệp đính kèm'
+        ? '🖼 Hình ảnh'
+        : lastMsg.type === 'audio'
+          ? '🎙 Ghi âm'
+          : lastMsg.type === 'file'
+            ? '📎 Tệp đính kèm'
+            : ''
     : 'Bắt đầu trò chuyện';
 
   const isOwnLastMsg = lastMsg?.sender_id === user?.id;
@@ -48,11 +50,10 @@ export default function ConversationItem({ conversation }: ConversationItemProps
   return (
     <Link href={`/chat/${conversation.id}`}>
       <div
-        className={`flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all ${
-          isActive
+        className={`flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all ${isActive
             ? 'bg-indigo-600/20 border border-indigo-500/30'
             : 'hover:bg-white/5'
-        }`}
+          }`}
       >
         <Avatar
           name={displayName}

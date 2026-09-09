@@ -94,6 +94,7 @@ func Setup(r *gin.Engine, db *gorm.DB, rdb *redis.Client, cfg *config.Config, hu
 				conversations.GET("", chatHandler.GetConversations)
 				conversations.POST("", chatHandler.CreateConversation)
 				conversations.GET("/:id", chatHandler.GetConversation)
+				conversations.PUT("/:id", chatHandler.UpdateConversation)
 				conversations.GET("/:id/messages", chatHandler.GetMessages)
 				conversations.POST("/:id/members", chatHandler.AddMembers)
 				conversations.POST("/:id/upload", chatHandler.UploadFile)

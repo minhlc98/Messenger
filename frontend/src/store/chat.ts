@@ -16,6 +16,7 @@ interface ChatStore {
 
   setConversations: (convs: Conversation[]) => void;
   addConversation: (conv: Conversation) => void;
+  updateConversation: (conv: Conversation) => void;
   updateConversationLastMessage: (conversationId: string, message: Message) => void;
   setActiveConversation: (id: string | null) => void;
   setMessages: (conversationId: string, messages: Message[]) => void;
@@ -53,6 +54,19 @@ export const useChatStore = create<ChatStore>((set) => ({
       const filtered = state.conversations.filter((c) => c.id !== conv.id);
       return {
         conversations: [conv, ...filtered],
+      };
+    }),
+
+  updateConversation: (conv) =>
+    set((state) => {
+      const exists = state.conversations.some((c) => c.id === conv.id);
+      if (!exists) {
+        return {
+          conversations: [conv, ...state.conversations],
+        };
+      }
+      return {
+        conversations: state.conversations.map((c) => (c.id === conv.id ? { ...c, ...conv } : c)),
       };
     }),
 

@@ -19,6 +19,7 @@ type ChatRepository interface {
 	GetMessages(ctx context.Context, convID uuid.UUID, before string, limit int) ([]models.Message, error)
 	CheckAdminRole(ctx context.Context, convID uuid.UUID, userID string) (bool, error)
 	AddMembers(ctx context.Context, convID uuid.UUID, memberIDs []string) error
+	UpdateConversation(ctx context.Context, convID uuid.UUID, name string) (*models.Conversation, error)
 	CreateMessage(ctx context.Context, msg *models.Message) error
 	GetMessage(ctx context.Context, msgID uuid.UUID) (*models.Message, error)
 }
@@ -168,13 +169,21 @@ func (r *chatRepository) GetMessages(ctx context.Context, convID uuid.UUID, befo
 	if before != "" {
 		var beforeMsg models.Message
 		r.db.WithContext(ctx).Select("created_at").Where("id = ?", before).First(&beforeMsg)
-		q = q.Where("created_at < ?", beforeMsg.CreatedAt).Order("created_at DESC")
-	} else {
-		q = q.Order("created_at ASC")
+		q = q.Where("created_at < ?", beforeMsg.CreatedAt)
 	}
+	
+	q = q.Order("created_at DESC")
 
 	err := q.Limit(limit).Find(&messages).Error
-	return messages, err
+	if err != nil {
+		return nil, err
+	}
+
+	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
+		messages[i], messages[j] = messages[j], messages[i]
+	}
+
+	return messages, nil
 }
 
 func (r *chatRepository) CheckAdminRole(ctx context.Context, convID uuid.UUID, userID string) (bool, error) {
@@ -197,6 +206,14 @@ func (r *chatRepository) AddMembers(ctx context.Context, convID uuid.UUID, membe
 		}
 		return nil
 	})
+}
+
+func (r *chatRepository) UpdateConversation(ctx context.Context, convID uuid.UUID, name string) (*models.Conversation, error) {
+	err := r.db.WithContext(ctx).Model(&models.Conversation{}).Where("id = ?", convID).Update("name", name).Error
+	if err != nil {
+		return nil, err
+	}
+	return r.GetConversation(ctx, convID)
 }
 
 func (r *chatRepository) CreateMessage(ctx context.Context, msg *models.Message) error {

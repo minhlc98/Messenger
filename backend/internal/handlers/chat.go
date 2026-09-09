@@ -157,9 +157,9 @@ func (h *ChatHandler) AddMembers(c *gin.Context) {
 		return
 	}
 
-	isAdmin, _ := h.chatService.CheckAdminRole(ctx, convUUID, userID)
-	if !isAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to add members"})
+	isMember, _ := h.chatService.CheckMembership(ctx, convUUID, userID)
+	if !isMember {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Not a member of this conversation"})
 		return
 	}
 
@@ -168,21 +168,106 @@ func (h *ChatHandler) AddMembers(c *gin.Context) {
 		return
 	}
 
-	if h.Hub != nil {
-		conv, _ := h.chatService.GetConversation(ctx, convUUID)
-		if conv != nil {
+	conv, _ := h.chatService.GetConversation(ctx, convUUID)
+	if conv != nil {
+		var actorName string = "Một thành viên"
+		for _, m := range conv.Members {
+			if m.ID.String() == userID {
+				actorName = m.Name
+				break
+			}
+		}
+
+		sysMsg := models.Message{
+			ConversationID: convID,
+			SenderID:       userID,
+			Type:           "system",
+			Content:        actorName + " đã thêm thành viên mới vào nhóm",
+		}
+		_ = h.chatService.CreateMessage(ctx, &sysMsg)
+
+		if h.Hub != nil {
 			var memberIDs []string
 			for _, m := range conv.Members {
 				memberIDs = append(memberIDs, m.ID.String())
 			}
 			h.Hub.BroadcastToUsers(memberIDs, map[string]interface{}{
-				"type":         "new_conversation",
-				"conversation": conv,
+				"type":            "conversation_updated",
+				"conversation_id": convID,
+				"conversation":    conv,
+				"message":         sysMsg,
 			})
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Members added successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Members added successfully", "data": conv})
+}
+
+type UpdateConversationRequest struct {
+	Name string `json:"name" binding:"required,min=1,max=100"`
+}
+
+func (h *ChatHandler) UpdateConversation(c *gin.Context) {
+	userID := c.GetString("user_id")
+	convID := c.Param("id")
+	ctx := c.Request.Context()
+
+	convUUID, err := uuid.Parse(convID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid conversation ID"})
+		return
+	}
+
+	isMember, _ := h.chatService.CheckMembership(ctx, convUUID, userID)
+	if !isMember {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Not a member of this conversation"})
+		return
+	}
+
+	var req UpdateConversationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	conv, err := h.chatService.UpdateConversation(ctx, convUUID, req.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update conversation"})
+		return
+	}
+
+	if conv != nil {
+		var actorName string = "Một thành viên"
+		for _, m := range conv.Members {
+			if m.ID.String() == userID {
+				actorName = m.Name
+				break
+			}
+		}
+
+		sysMsg := models.Message{
+			ConversationID: convID,
+			SenderID:       userID,
+			Type:           "system",
+			Content:        actorName + " đã đổi tên nhóm thành \"" + req.Name + "\"",
+		}
+		_ = h.chatService.CreateMessage(ctx, &sysMsg)
+
+		if h.Hub != nil {
+			var memberIDs []string
+			for _, m := range conv.Members {
+				memberIDs = append(memberIDs, m.ID.String())
+			}
+			h.Hub.BroadcastToUsers(memberIDs, map[string]interface{}{
+				"type":            "conversation_updated",
+				"conversation_id": convID,
+				"conversation":    conv,
+				"message":         sysMsg,
+			})
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": conv})
 }
 
 func (h *ChatHandler) UploadFile(c *gin.Context) {
