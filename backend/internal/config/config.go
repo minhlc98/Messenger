@@ -23,10 +23,14 @@ type Config struct {
 	RedisPort        string
 	JWTSecret        string
 	JWTRefreshSec    string
-	UploadDir        string
 	RateLimitByIP    int
 	RateLimitByToken int
 	ResendAPIKey     string
+	R2AccountID      string
+	R2AccessKey      string
+	R2SecretKey      string
+	R2Bucket         string
+	R2PublicURL      string
 }
 
 func Load() *Config {
@@ -50,10 +54,14 @@ func Load() *Config {
 		RedisPort:        getEnv("REDIS_PORT", "6379"),
 		JWTSecret:        getEnv("JWT_SECRET", "secret"),
 		JWTRefreshSec:    getEnv("JWT_REFRESH_SECRET", "refresh_secret"),
-		UploadDir:        getEnv("UPLOAD_DIR", "./uploads"),
 		RateLimitByIP:    getEnvInt("RATE_LIMIT_BY_IP", 1),
 		RateLimitByToken: getEnvInt("RATE_LIMIT_BY_TOKEN", 1),
 		ResendAPIKey:     getEnv("RESEND_API_KEY", ""),
+		R2AccountID:      getEnv("R2_ACCOUNT_ID", ""),
+		R2AccessKey:      getEnv("R2_ACCESS_KEY", ""),
+		R2SecretKey:      getEnv("R2_SECRET_ACCESS_KEY", ""),
+		R2Bucket:         getEnv("R2_BUCKET", ""),
+		R2PublicURL:      getEnv("R2_PUBLIC_URL", ""),
 	}
 }
 

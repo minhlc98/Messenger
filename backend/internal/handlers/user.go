@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
 
 	"chat-app/internal/config"
@@ -14,12 +14,13 @@ import (
 )
 
 type UserHandler struct {
-	userService services.UserService
-	cfg         *config.Config
+	userService    services.UserService
+	storageService services.StorageService
+	cfg            *config.Config
 }
 
-func NewUserHandler(userService services.UserService, cfg *config.Config) *UserHandler {
-	return &UserHandler{userService: userService, cfg: cfg}
+func NewUserHandler(userService services.UserService, storageService services.StorageService, cfg *config.Config) *UserHandler {
+	return &UserHandler{userService: userService, storageService: storageService, cfg: cfg}
 }
 
 func (h *UserHandler) GetMe(c *gin.Context) {
@@ -74,39 +75,41 @@ func (h *UserHandler) UpdateMe(c *gin.Context) {
 }
 
 func (h *UserHandler) UploadAvatar(c *gin.Context) {
+	ctx := c.Request.Context()
 	userID := c.GetString("user_id")
 
 	file, err := c.FormFile("avatar")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get file"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Không thể mở file"})
 		return
 	}
 
-	ext := filepath.Ext(file.Filename)
-	newFilename := uuid.New().String() + ext
-	uploadPath := filepath.Join(h.cfg.UploadDir, newFilename)
-
-	if err := os.MkdirAll(h.cfg.UploadDir, os.ModePerm); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
-		return
-	}
-
-	if err := c.SaveUploadedFile(file, uploadPath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
-		return
-	}
-
-	avatarURL := "/uploads/" + newFilename
-	
-	user, err := h.userService.GetUserByID(c.Request.Context(), userID)
+	user, err := h.userService.GetUserByID(ctx, userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
-	
-	user.AvatarURL = avatarURL
-	if err := h.userService.UpdateUser(c.Request.Context(), user); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update avatar in DB"})
+
+	ext := filepath.Ext(file.Filename)
+	newFilename := fmt.Sprintf("avatars/%s%s", uuid.New().String(), ext)
+
+	reader, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
+		return
+	}
+	defer reader.Close()
+
+	contentType := file.Header.Get("Content-Type")
+	fileURL, err := h.storageService.Upload(ctx, newFilename, contentType, reader)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật ảnh đại diện thất bại"})
+		return
+	}
+
+	user.AvatarURL = fileURL
+	if err := h.userService.UpdateUser(ctx, user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật ảnh đại diện thất bại"})
 		return
 	}
 

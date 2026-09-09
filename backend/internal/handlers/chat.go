@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 
@@ -16,13 +16,14 @@ import (
 )
 
 type ChatHandler struct {
-	chatService services.ChatService
-	Cfg         *config.Config
-	Hub         *websocket.Hub
+	chatService    services.ChatService
+	storageService services.StorageService
+	Cfg            *config.Config
+	Hub            *websocket.Hub
 }
 
-func NewChatHandler(chatService services.ChatService, cfg *config.Config, hub *websocket.Hub) *ChatHandler {
-	return &ChatHandler{chatService: chatService, Cfg: cfg, Hub: hub}
+func NewChatHandler(chatService services.ChatService, storageService services.StorageService, cfg *config.Config, hub *websocket.Hub) *ChatHandler {
+	return &ChatHandler{chatService: chatService, storageService: storageService, Cfg: cfg, Hub: hub}
 }
 
 func (h *ChatHandler) GetConversations(c *gin.Context) {
@@ -297,20 +298,21 @@ func (h *ChatHandler) UploadFile(c *gin.Context) {
 	content := c.DefaultPostForm("content", file.Filename)
 
 	ext := filepath.Ext(file.Filename)
-	newFilename := uuid.New().String() + ext
-	uploadPath := filepath.Join(h.Cfg.UploadDir, newFilename)
+	newFilename := fmt.Sprintf("conversations/%s/%s", convID, uuid.New().String()+ext)
 
-	if err := os.MkdirAll(h.Cfg.UploadDir, os.ModePerm); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+	src, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gửi file thất bại, vui lòng thử lại sau"})
 		return
 	}
+	defer src.Close()
 
-	if err := c.SaveUploadedFile(file, uploadPath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+	contentType := file.Header.Get("Content-Type")
+	fileURL, err := h.storageService.Upload(ctx, newFilename, contentType, src)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gửi file thất bại, vui lòng thử lại sau"})
 		return
 	}
-
-	fileURL := "/uploads/" + newFilename
 
 	msg := models.Message{
 		ConversationID: convID,

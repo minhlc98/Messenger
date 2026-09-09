@@ -25,9 +25,6 @@ func Setup(r *gin.Engine, db *gorm.DB, rdb *redis.Client, cfg *config.Config, hu
 
 	r.Use(gin.Recovery())
 
-	// Serve uploaded files
-	r.Static("/uploads", cfg.UploadDir)
-
 	userRepository := repositories.NewUserRepository(db)
 	friendRepository := repositories.NewFriendRepository(db)
 	chatRepository := repositories.NewChatRepository(db)
@@ -39,12 +36,13 @@ func Setup(r *gin.Engine, db *gorm.DB, rdb *redis.Client, cfg *config.Config, hu
 	authService := services.NewAuthService(cfg, userRepository, otpRepository, otpService)
 	friendService := services.NewFriendService(friendRepository)
 	chatService := services.NewChatService(chatRepository)
+	storageService := services.NewStorageService(cfg)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
-	userHandler := handlers.NewUserHandler(userService, cfg)
+	userHandler := handlers.NewUserHandler(userService, storageService, cfg)
 	friendHandler := handlers.NewFriendHandler(friendService, hub)
-	chatHandler := handlers.NewChatHandler(chatService, cfg, hub)
+	chatHandler := handlers.NewChatHandler(chatService, storageService, cfg, hub)
 	wsHandler := handlers.NewWSHandler(hub, cfg)
 
 	// WebSocket (no auth middleware, uses token query param)

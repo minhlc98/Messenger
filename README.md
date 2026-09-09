@@ -25,10 +25,11 @@ A real-time chat application built with **Go** backend and **Next.js** frontend,
 
 | Layer | Technology |
 |-------|-----------|
-| **Backend** | Go 1.25, Gin, gorilla/websocket, GORM |
+| **Backend** | Go 1.25, Gin, gorilla/websocket, GORM, AWS SDK (S3) |
 | **Database** | PostgreSQL 16 |
 | **Cache / Presence** | Redis 7 |
-| **Auth** | JWT (access + refresh token), OTP via AWS SES |
+| **Auth** | JWT (access + refresh token), OTP via Resend |
+| **Storage** | Cloudflare R2 (S3-compatible object storage) |
 | **Frontend** | Next.js 14, TypeScript, Tailwind CSS |
 | **State Management** | Zustand |
 | **Form Handling** | React Hook Form + Zod |
@@ -122,8 +123,15 @@ REDIS_PORT=6379
 JWT_SECRET=your_jwt_secret
 JWT_REFRESH_SECRET=your_refresh_secret
 
-# File Uploads
-UPLOAD_DIR=./uploads
+# Email Verification (Resend)
+RESEND_API_KEY=your_resend_api_key
+
+# File Uploads (Cloudflare R2)
+R2_ACCOUNT_ID=your_cloudflare_account_id
+R2_ACCESS_KEY=your_r2_access_key
+R2_SECRET_ACCESS_KEY=your_r2_secret_key
+R2_BUCKET=your_r2_bucket_name
+R2_PUBLIC_URL=https://pub-xxxxxx.r2.dev
 
 # Rate Limiting (requests per minute)
 RATE_LIMIT_BY_IP=5

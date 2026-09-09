@@ -56,7 +56,7 @@ export default function MessageBubble({
 
   /* ── Margin between messages in same run ───────────────────── */
   const marginTop =
-    position === 'first' || position === 'single' ? 'mt-3.5' : 'mt-1';
+    position === 'first' || position === 'single' ? 'mt-3.5' : 'mt-1.5';
 
   /* ── Image message ──────────────────────────────────────────── */
   if (message.type === 'image' && message.file_url) {
@@ -80,11 +80,11 @@ export default function MessageBubble({
                 ? `border-indigo-500/20 ${cornerOwn}`
                 : `border-slate-200/80 ${cornerOther}`
             )}
-            onClick={() => window.open(`${apiBase}${message.file_url}`, '_blank')}
+            onClick={() => window.open(`${message.file_url}`, '_blank')}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={`${apiBase}${message.file_url}`}
+              src={`${message.file_url}`}
               alt="image"
               className="max-w-[280px] sm:max-w-[340px] max-h-[380px] w-auto h-auto object-cover group-hover:scale-[1.015] transition-transform duration-200"
             />
@@ -94,7 +94,7 @@ export default function MessageBubble({
             </div>
           </div>
 
-          {message.content && (
+          {/* {message.content && (
             <div
               className={cn(
                 'mt-1 px-3.5 py-2 text-[14px] leading-relaxed relative break-words',
@@ -105,7 +105,7 @@ export default function MessageBubble({
             >
               <p className="whitespace-pre-wrap">{message.content}</p>
             </div>
-          )}
+          )} */}
         </div>
       </div>
     );

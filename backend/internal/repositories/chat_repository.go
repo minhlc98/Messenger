@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"math"
 
 	"github.com/google/uuid"
 
@@ -171,9 +172,10 @@ func (r *chatRepository) GetMessages(ctx context.Context, convID uuid.UUID, befo
 		r.db.WithContext(ctx).Select("created_at").Where("id = ?", before).First(&beforeMsg)
 		q = q.Where("created_at < ?", beforeMsg.CreatedAt)
 	}
-	
+
 	q = q.Order("created_at DESC")
 
+	limit = int(math.Min(float64(limit), 500))
 	err := q.Limit(limit).Find(&messages).Error
 	if err != nil {
 		return nil, err
