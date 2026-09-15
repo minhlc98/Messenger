@@ -25,6 +25,9 @@ func Setup(r *gin.Engine, db *gorm.DB, rdb *redis.Client, cfg *config.Config, hu
 
 	r.Use(gin.Recovery())
 
+	healthHandler := handlers.NewHealthHandler()
+	r.GET("/_health", healthHandler.Health)
+
 	userRepository := repositories.NewUserRepository(db)
 	friendRepository := repositories.NewFriendRepository(db)
 	chatRepository := repositories.NewChatRepository(db)
