@@ -12,13 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	writeWait      = 10 * time.Second
-	pongWait       = 60 * time.Second
-	pingPeriod     = (pongWait * 9) / 10
-	maxMessageSize = 1024 * 1024 // 1MB
-	redisChannel   = "ws_broadcast"
-)
+const redisChannel = "ws_broadcast"
 
 type Hub struct {
 	Clients    map[string]map[*Client]bool
@@ -228,21 +222,6 @@ func (h *Hub) broadcastStatus(userID, status string) {
 	`, userID, userID).Scan(&memberIDs)
 
 	h.publishToRedis(memberIDs, statusMsg)
-}
-
-func (h *Hub) maintainOnlineStatus(userID string) {
-	ticker := time.NewTicker(4 * time.Minute)
-	defer ticker.Stop()
-	for {
-		<-ticker.C
-		h.mu.RLock()
-		_, ok := h.Clients[userID]
-		h.mu.RUnlock()
-		if !ok {
-			return
-		}
-		h.Redis.Set(context.Background(), "user:"+userID+":online", 1, 5*time.Minute)
-	}
 }
 
 func (h *Hub) publishToRedis(userIDs []string, payload []byte) {
