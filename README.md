@@ -1,3 +1,5 @@
+Link: https://messenger.click
+
 # 💬 Chat App
 
 A real-time chat application built with **Go** backend and **Next.js** frontend, featuring WebSocket-powered messaging, friend management, group conversations, and OTP-based email verification.
