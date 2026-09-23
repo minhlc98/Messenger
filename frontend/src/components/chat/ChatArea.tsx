@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, UIEvent } from 'react';
+import { useEffect, useRef, useState, UIEvent, useCallback } from 'react';
 import { useChatStore } from '@/store/chat';
 import { useAuthStore } from '@/store/auth';
 import MessageBubble, { BubblePosition } from './MessageBubble';
@@ -95,23 +95,23 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
     if (target.scrollTop === 0 && !loadingMore && !loading && convMessages.length > 0 && hasMore[conversation.id] !== false) {
       setLoadingMore(true);
       const firstMsgId = convMessages[0].id;
-      
+
       try {
         const res = await api.get<{ data: Message[] }>(
           `/conversations/${conversation.id}/messages?limit=50&before=${firstMsgId}`
         );
-        
+
         const olderMessages = res.data.data || [];
         if (olderMessages.length < 50) {
           setHasMore(conversation.id, false);
         } else {
           setHasMore(conversation.id, true);
         }
-        
+
         if (olderMessages.length > 0) {
           const scrollHeightBefore = target.scrollHeight;
           prependMessages(conversation.id, olderMessages);
-          
+
           requestAnimationFrame(() => {
             if (scrollContainerRef.current) {
               const scrollHeightAfter = scrollContainerRef.current.scrollHeight;
@@ -120,20 +120,34 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
           });
         }
       } catch { }
-      
+
       setLoadingMore(false);
     }
   };
 
-  // Scroll to bottom when new messages arrive
+  const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const scrollToBottom = useCallback(() => {
+    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+
+    scrollTimeout.current = setTimeout(() => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: isFirstLoad.current ? 'instant' : 'smooth',
+        });
+      }
+    }, 200); // Đợi 100ms, nếu có nhiều ảnh load cùng lúc thì chỉ scroll 1 lần
+  }, []);
+
+  // Scroll to bottom when new messages arrive or conversation changes
   useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({
-        behavior: isFirstLoad.current ? 'instant' : 'smooth',
-      });
+    setTimeout(() => {
+      scrollToBottom();
       isFirstLoad.current = false;
-    }
-  }, [convMessages.length]);
+    }, 50);
+  }, [conversation.id, convMessages.length, loading]);
 
   // Get typing user names
   const typingNames = typingInConv
@@ -184,7 +198,7 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
       />
 
       {/* Messages */}
-      <div 
+      <div
         className="flex-1 overflow-y-auto scrollbar-chat px-4 sm:px-6 py-4"
         ref={scrollContainerRef}
         onScroll={handleScroll}
@@ -238,6 +252,7 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
                     showAvatar={showAvatar}
                     isGroup={conversation.is_group}
                     position={position}
+                    onImageLoad={scrollToBottom}
                   />
                 </div>
               );

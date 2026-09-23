@@ -3,11 +3,13 @@ package repositories
 import (
 	"context"
 	"math"
+	"sort"
 
 	"github.com/google/uuid"
 
 	"chat-app/internal/models"
 
+	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -53,20 +55,40 @@ func (r *chatRepository) GetConversations(ctx context.Context, userID string) ([
 		convIDs[i] = c.ID
 	}
 
+	g, gCtx := errgroup.WithContext(ctx)
+
+	var lastMessages []models.Message
+	g.Go(func() error {
+		return r.db.WithContext(gCtx).
+			Preload("Sender").
+			Select("DISTINCT ON (conversation_id) *").
+			Where("conversation_id IN ?", convIDs).
+			Order("conversation_id, created_at DESC").
+			Find(&lastMessages).Error
+	})
+
 	type memberWithConvID struct {
 		models.User
 		ConversationID uuid.UUID `gorm:"column:conversation_id"`
 	}
 
 	var members []memberWithConvID
-	err = r.db.WithContext(ctx).
-		Table("users").
-		Select("users.*, cm.conversation_id").
-		Joins("JOIN conversation_members cm ON users.id = cm.user_id").
-		Where("cm.conversation_id IN ?", convIDs).
-		Find(&members).Error
-	if err != nil {
+	g.Go(func() error {
+		return r.db.WithContext(gCtx).
+			Table("users").
+			Select("users.*, cm.conversation_id").
+			Joins("JOIN conversation_members cm ON users.id = cm.user_id").
+			Where("cm.conversation_id IN ?", convIDs).
+			Find(&members).Error
+	})
+
+	if err := g.Wait(); err != nil {
 		return nil, err
+	}
+
+	lastMsgMap := make(map[string]*models.Message)
+	for i := range lastMessages {
+		lastMsgMap[lastMessages[i].ConversationID] = &lastMessages[i]
 	}
 
 	membersMap := make(map[uuid.UUID][]models.User)
@@ -75,12 +97,28 @@ func (r *chatRepository) GetConversations(ctx context.Context, userID string) ([
 	}
 
 	for i := range conversations {
+		convIDStr := conversations[i].ID.String()
+		conversations[i].LastMessage = lastMsgMap[convIDStr]
+
 		if m, ok := membersMap[conversations[i].ID]; ok {
 			conversations[i].Members = m
 		} else {
 			conversations[i].Members = []models.User{}
 		}
 	}
+
+	// Sort lại mảng conversations theo thời gian của Last Message
+	sort.Slice(conversations, func(i, j int) bool {
+		timeI := conversations[i].CreatedAt
+		if conversations[i].LastMessage != nil {
+			timeI = conversations[i].LastMessage.CreatedAt
+		}
+		timeJ := conversations[j].CreatedAt
+		if conversations[j].LastMessage != nil {
+			timeJ = conversations[j].LastMessage.CreatedAt
+		}
+		return timeI.After(timeJ)
+	})
 
 	return conversations, nil
 }

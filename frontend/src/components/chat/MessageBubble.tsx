@@ -12,12 +12,14 @@ interface MessageBubbleProps {
   showAvatar?: boolean;
   isGroup: boolean;
   position?: BubblePosition;
+  onImageLoad?: () => void;
 }
 
 export default function MessageBubble({
   message,
   isGroup,
   position = 'single',
+  onImageLoad,
 }: MessageBubbleProps) {
   const { user } = useAuthStore();
 
@@ -86,6 +88,7 @@ export default function MessageBubble({
             <img
               src={`${message.file_url}`}
               alt="image"
+              onLoad={onImageLoad}
               className="max-w-[280px] sm:max-w-[340px] max-h-[380px] w-auto h-auto object-cover group-hover:scale-[1.015] transition-transform duration-200"
             />
             {/* Floating frosted timestamp overlay */}
