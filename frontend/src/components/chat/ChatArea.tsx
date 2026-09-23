@@ -138,7 +138,7 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
           behavior: isFirstLoad.current ? 'instant' : 'smooth',
         });
       }
-    }, 200); // Đợi 100ms, nếu có nhiều ảnh load cùng lúc thì chỉ scroll 1 lần
+    }, 100); // Đợi 100ms, nếu có nhiều ảnh load cùng lúc thì chỉ scroll 1 lần
   }, []);
 
   // Scroll to bottom when new messages arrive or conversation changes
