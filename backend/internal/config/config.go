@@ -21,6 +21,8 @@ type Config struct {
 	DBMaxIdleTime    int
 	RedisHost        string
 	RedisPort        string
+	RedisUser        string
+	RedisPassword    string
 	JWTSecret        string
 	JWTRefreshSec    string
 	RateLimitByIP    int
@@ -52,6 +54,8 @@ func Load() *Config {
 		DBMaxIdleTime:    getEnvInt("DB_MAX_IDLE_TIME", 10),
 		RedisHost:        getEnv("REDIS_HOST", "localhost"),
 		RedisPort:        getEnv("REDIS_PORT", "6379"),
+		RedisUser:        getEnv("REDIS_USER", ""),
+		RedisPassword:    getEnv("REDIS_PASSWORD", ""),
 		JWTSecret:        getEnv("JWT_SECRET", "secret"),
 		JWTRefreshSec:    getEnv("JWT_REFRESH_SECRET", "refresh_secret"),
 		RateLimitByIP:    getEnvInt("RATE_LIMIT_BY_IP", 1),

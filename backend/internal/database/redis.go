@@ -9,8 +9,8 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func ConnectRedis(cf *config.Config) *redis.Client {
-	redisURL := fmt.Sprintf("redis://%s:%s", cf.RedisHost, cf.RedisPort)
+func ConnectRedis(cfg *config.Config) *redis.Client {
+	redisURL := fmt.Sprintf("redis://%s:%s@%s:%s", cfg.RedisUser, cfg.RedisPassword, cfg.RedisHost, cfg.RedisPort)
 	opt, err := redis.ParseURL(redisURL)
 	if err != nil {
 		log.Fatalf("Failed to parse Redis URL: %v", err)
