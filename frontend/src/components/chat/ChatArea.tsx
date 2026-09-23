@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, UIEvent, useCallback } from 'react';
+import { useEffect, useRef, useState, UIEvent, useCallback, useLayoutEffect } from 'react';
 import { useChatStore } from '@/store/chat';
 import { useAuthStore } from '@/store/auth';
 import MessageBubble, { BubblePosition } from './MessageBubble';
@@ -11,6 +11,7 @@ import api from '@/lib/api';
 import { Users } from 'lucide-react';
 import { isToday, isYesterday, format, isSameDay } from 'date-fns';
 import GroupDetailModal from '@/components/modals/GroupDetailModal';
+import { toast } from 'sonner';
 
 interface ChatAreaProps {
   conversation: Conversation;
@@ -119,7 +120,9 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
             }
           });
         }
-      } catch { }
+      } catch {
+        toast.error("Đã xảy ra lỗi khi tải tin nhắn.");
+      }
 
       setLoadingMore(false);
     }
@@ -127,27 +130,61 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
 
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = useCallback((forceInstant: boolean = false) => {
+    const doScroll = () => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: (forceInstant || isFirstLoad.current) ? 'instant' : 'smooth',
+      });
+    };
+
+    if (forceInstant) {
+      if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+      doScroll();
+      return;
+    }
+
     if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
 
-    scrollTimeout.current = setTimeout(() => {
-      const container = scrollContainerRef.current;
-      if (container) {
-        container.scrollTo({
-          top: container.scrollHeight,
-          behavior: isFirstLoad.current ? 'instant' : 'smooth',
-        });
-      }
-    }, 100); // Đợi 100ms, nếu có nhiều ảnh load cùng lúc thì chỉ scroll 1 lần
+    scrollTimeout.current = setTimeout(doScroll, 100);
   }, []);
 
-  // Scroll to bottom when new messages arrive or conversation changes
-  useEffect(() => {
-    setTimeout(() => {
-      scrollToBottom();
+  // 1. Cuộn xuống đáy ngay lập tức khi lần đầu load xong phòng chat
+  useLayoutEffect(() => {
+    if (!loading && isFirstLoad.current) {
+      scrollToBottom(true);
       isFirstLoad.current = false;
-    }, 50);
-  }, [conversation.id, convMessages.length, loading]);
+    }
+  }, [conversation.id, loading, scrollToBottom]);
+
+  // 2. Chỉ cuộn xuống đáy nếu có tin nhắn MỚI NHẤT
+  const lastMessage = convMessages.length > 0 ? convMessages[convMessages.length - 1] : null;
+  const lastMessageId = lastMessage?.id;
+  const isOwnMessage = lastMessage?.sender_id === user?.id;
+
+  const prevLastMsgId = useRef(lastMessageId);
+
+  useLayoutEffect(() => {
+    if (lastMessageId !== prevLastMsgId.current) {
+      prevLastMsgId.current = lastMessageId;
+
+      if (!isFirstLoad.current) {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        // Tính toán xem người dùng có đang ở gần đáy không (cách đáy dưới 150px)
+        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+
+        // Chỉ cuộn xuống nếu đang ở gần đáy (đang chat bình thường) 
+        // HOẶC nếu đó là tin nhắn do chính mình vừa gửi (dù đang cuộn tuốt trên cao cũng kéo xuống)
+        if (isNearBottom || isOwnMessage) {
+          scrollToBottom(false);
+        }
+      }
+    }
+  }, [lastMessageId, isOwnMessage, scrollToBottom]);
 
   // Get typing user names
   const typingNames = typingInConv
@@ -252,7 +289,7 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
                     showAvatar={showAvatar}
                     isGroup={conversation.is_group}
                     position={position}
-                    onImageLoad={scrollToBottom}
+                    onImageLoad={() => scrollToBottom(false)}
                   />
                 </div>
               );
