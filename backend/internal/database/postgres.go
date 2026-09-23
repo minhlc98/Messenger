@@ -26,7 +26,10 @@ func ConnectPostgres(config *config.Config) (*gorm.DB, error) {
 		config.DBName,
 		config.DBPort,
 	)
-	gdb, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+	gdb, err := gorm.Open(postgres.New(postgres.Config{
+		DSN:                  dsn,
+		PreferSimpleProtocol: true, // Fix for "prepared statement already exists" (PgBouncer/Supabase issue)
+	}), &gorm.Config{
 		Logger:         gormLogger.Default.LogMode(gormLogger.Silent),
 		TranslateError: true,
 	})
