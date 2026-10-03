@@ -13,9 +13,9 @@ A real-time full-stack chat application with:
 | Backend | Go 1.25 · Gin · GORM · gorilla/websocket |
 | Database | PostgreSQL 16 |
 | Cache / Presence | Redis 7 |
-| Auth | JWT (access + refresh) · OTP via AWS SES |
+| Auth | JWT (access + refresh) · OTP via Resend |
 | Frontend | Next.js 14 · TypeScript · Tailwind CSS · Zustand |
-| Infra | Docker Compose |
+| Infra | Docker Compose · Cloudflare R2 |
 
 ---
 
@@ -84,11 +84,22 @@ DB_USER=<pg_user>
 DB_PASSWORD=<pg_password>
 DB_NAME=chatapp
 DB_SSL_MODE=disable
+DB_MAX_IDLE_CONNECTIONS=
+DB_MAX_CONNECTIONS=
+DB_MAX_LIFETIME=
+DB_MAX_IDLE_TIME=
 REDIS_HOST=localhost
 REDIS_PORT=6379
+REDIS_USER=
+REDIS_PASSWORD=
 JWT_SECRET=<secret>
 JWT_REFRESH_SECRET=<secret>
-UPLOAD_DIR=./uploads
+RESEND_API_KEY=
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=
+R2_PUBLIC_URL=
 RATE_LIMIT_BY_IP=5
 RATE_LIMIT_BY_TOKEN=5
 
@@ -126,6 +137,11 @@ NEXT_PUBLIC_WS_URL=ws://localhost:8080/ws
 
 ## API Quick Reference
 
+### System
+```
+GET /_health
+```
+
 ### Auth (public)
 ```
 POST /api/auth/register
@@ -151,6 +167,7 @@ PUT      /api/friends/requests/:id/reject
 GET      /api/conversations
 POST     /api/conversations
 GET      /api/conversations/:id
+PUT      /api/conversations/:id
 GET      /api/conversations/:id/messages
 POST     /api/conversations/:id/members
 POST     /api/conversations/:id/upload
