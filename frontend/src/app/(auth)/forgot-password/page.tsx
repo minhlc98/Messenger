@@ -137,11 +137,15 @@ export default function ForgotPasswordPage() {
         </form>
       ) : (
         <form onSubmit={handleResetSubmit(onResetSubmit)} className="space-y-4">
+          {/* Ẩn thẻ email để đánh lừa trình duyệt, tránh autofill bậy bạ vào ô OTP */}
+          <input type="email" name="email" value={email} readOnly className="hidden" autoComplete="username" />
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Mã xác thực (OTP)</label>
             <input
               {...registerReset('code')}
               type="text"
+              autoComplete="one-time-code"
               maxLength={6}
               placeholder="123456"
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm tracking-widest text-center text-lg font-bold"
@@ -186,7 +190,7 @@ export default function ForgotPasswordPage() {
           >
             {isResetSubmitting ? 'Đang cập nhật...' : 'Đổi mật khẩu'}
           </button>
-          
+
           <div className="mt-4 text-center text-sm">
             <button
               onClick={onResend}
