@@ -52,7 +52,7 @@ export default function Sidebar() {
   });
 
   return (
-    <div className="w-80 flex-shrink-0 bg-[#1a1a2e] flex flex-col h-full border-r border-white/10">
+    <div className="w-full h-full bg-[#1a1a2e] flex flex-col md:border-r border-white/10">
       {/* Header */}
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center justify-between mb-4">

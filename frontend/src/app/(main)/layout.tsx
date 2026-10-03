@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useWebSocketInit } from '@/hooks/useWebSocket';
 import Sidebar from '@/components/sidebar/Sidebar';
@@ -9,11 +9,15 @@ import Sidebar from '@/components/sidebar/Sidebar';
 function MainLayoutInner({ children }: { children: React.ReactNode }) {
   // Khởi tạo WebSocket 1 lần duy nhất ở đây — không ở Sidebar
   useWebSocketInit();
+  const pathname = usePathname();
+  const isChatDetail = pathname !== '/chat' && pathname?.startsWith('/chat/');
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className={`w-full md:w-80 flex-shrink-0 ${isChatDetail ? 'hidden md:flex' : 'flex'}`}>
+        <Sidebar />
+      </div>
+      <main className={`flex-1 flex flex-col min-w-0 overflow-hidden ${!isChatDetail ? 'hidden md:flex' : 'flex'}`}>
         {children}
       </main>
     </div>

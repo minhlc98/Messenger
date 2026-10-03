@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Conversation } from '@/types';
 import Avatar from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/auth';
 import { useChatStore } from '@/store/chat';
-import { Users } from 'lucide-react';
+import { Users, ArrowLeft } from 'lucide-react';
 import GroupDetailModal from '@/components/modals/GroupDetailModal';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +16,7 @@ interface ChatHeaderProps {
 }
 
 export default function ChatHeader({ conversation, onOpenGroupDetail }: ChatHeaderProps) {
+  const router = useRouter();
   const { user } = useAuthStore();
   const onlineUsers = useChatStore((state) => state.onlineUsers);
   const [internalShowModal, setInternalShowModal] = useState(false);
@@ -43,9 +45,17 @@ export default function ChatHeader({ conversation, onOpenGroupDetail }: ChatHead
 
   return (
     <>
-      <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-slate-100 bg-white/95 backdrop-blur-xs shadow-xs select-none">
+      <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-slate-100 bg-white/95 backdrop-blur-xs shadow-xs select-none">
         {/* Left: Clickable group / user info */}
-        <div
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <button
+            onClick={() => router.push('/chat')}
+            className="md:hidden p-1.5 -ml-2 mr-1 rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
+          <div
           onClick={() => conversation.is_group && handleOpenModal()}
           className={cn(
             'flex items-center gap-3 flex-1 min-w-0',
@@ -83,6 +93,7 @@ export default function ChatHeader({ conversation, onOpenGroupDetail }: ChatHead
               )}
             </p>
           </div>
+        </div>
         </div>
 
         {/* Right: Group members button */}
