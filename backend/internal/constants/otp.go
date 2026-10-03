@@ -1,3 +1,6 @@
 package constants
 
-const OTP_REGISTRATION = "REGISTER"
+const (
+	OTP_REGISTRATION   = "REGISTER"
+	OTP_RESET_PASSWORD = "RESET_PASSWORD"
+)

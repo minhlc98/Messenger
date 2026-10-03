@@ -62,6 +62,8 @@ func Setup(r *gin.Engine, db *gorm.DB, rdb *redis.Client, cfg *config.Config, hu
 			auth.POST("/refresh", authHandler.Refresh)
 			auth.POST("/verify-otp", authHandler.VerifyOTP)
 			auth.POST("/resend-registration-otp", authHandler.ResendOTP)
+			auth.POST("/forgot-password", authHandler.ForgotPassword)
+			auth.POST("/reset-password", authHandler.ResetPassword)
 		}
 
 		// Protected routes

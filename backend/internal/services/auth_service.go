@@ -23,6 +23,8 @@ type AuthService interface {
 	VerifyOTP(ctx context.Context, req dto.VerifyOTPRequest) (*dto.RegisterResponse, error)
 	ResendRegistrationOTP(ctx context.Context, req dto.ResendRegistrationOTPRequest) error
 	ChangePassword(ctx context.Context, userID string, ChangePasswordRequest dto.ChangePasswordRequest) error
+	ForgotPassword(ctx context.Context, req dto.ForgotPasswordRequest) error
+	ResetPassword(ctx context.Context, req dto.ResetPasswordRequest) error
 	generateTokens(userID string) (string, string, error)
 }
 
@@ -233,6 +235,52 @@ func (auth *authService) ChangePassword(ctx context.Context, userID string, req 
 		return err
 	}
 
+	return nil
+}
+
+func (auth *authService) ForgotPassword(ctx context.Context, req dto.ForgotPasswordRequest) error {
+	_, err := auth.userRepository.GetByEmail(ctx, req.Email)
+	if err != nil {
+		// Không báo lỗi để chống rò rỉ email
+		return nil
+	}
+
+	latestOtp, err := auth.otpRepository.GetLatestOTP(ctx, req.Email, constants.OTP_RESET_PASSWORD)
+	if err == nil && time.Since(latestOtp.CreatedAt) < 5*time.Minute {
+		return errors.New("Vui lòng đợi 5 phút trước khi yêu cầu mã mới")
+	}
+
+	if err := auth.otpService.SendPasswordResetOTP(context.Background(), req.Email); err != nil {
+		log.Println("Failed to send OTP:", err)
+		return errors.New("Gửi OTP thất bại")
+	}
+
+	return nil
+}
+
+func (auth *authService) ResetPassword(ctx context.Context, req dto.ResetPasswordRequest) error {
+	otp, err := auth.otpRepository.GetValidOTP(ctx, req.Email, req.Code, constants.OTP_RESET_PASSWORD)
+	if err != nil {
+		return errors.New("Mã OTP không hợp lệ hoặc đã hết hạn")
+	}
+
+	user, err := auth.userRepository.GetByEmail(ctx, req.Email)
+	if err != nil {
+		return errors.New("Không tìm thấy người dùng")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.PasswordHash = string(hash)
+
+	if err := auth.userRepository.Update(ctx, user); err != nil {
+		return err
+	}
+
+	_ = auth.otpRepository.Delete(ctx, otp.ID.String())
 	return nil
 }
 

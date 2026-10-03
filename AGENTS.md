@@ -161,7 +161,7 @@ Supported event types: `message`, `typing`, `read`, `online`, `offline`.
 ## What to Avoid
 
 - **Do not** expose GORM model structs directly in API responses — use DTOs.
-- **Do not** commit secrets or real `.env` files.
+- **NEVER** commit or push secrets or `.env` files (e.g. `.env-prod`, `.env.local`) to the repository. Always use `.env.example` for documentation.
 - **Do not** skip rate-limit middleware on auth endpoints.
 - **Do not** store uploaded file paths with the server-absolute path locally — use Cloudflare R2 for all uploads.
 - **Do not** add business logic inside HTTP handlers.

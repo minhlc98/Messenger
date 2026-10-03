@@ -18,6 +18,7 @@ import (
 
 type OTPService interface {
 	SendRegistrationOTP(ctx context.Context, email string) error
+	SendPasswordResetOTP(ctx context.Context, email string) error
 }
 
 type otpService struct {
@@ -60,6 +61,47 @@ func (s *otpService) SendRegistrationOTP(ctx context.Context, email string) erro
 	basepath := filepath.Dir(b)
 	// Đi ngược ra ngoài 1 folder (từ services ra internal) rồi vào folder templates
 	templatePath := filepath.Join(basepath, "..", "templates", "email_registration.html")
+
+	htmlByte, err := os.ReadFile(templatePath)
+	if err != nil {
+		return fmt.Errorf("failed to read email template: %w", err)
+	}
+	htmlBody := fmt.Sprintf(string(htmlByte), code)
+
+	payload := dto.EmailPayload{
+		ToEmail: []string{email},
+		Subject: subject,
+		Content: htmlBody,
+	}
+
+	err = s.emailService.Send(ctx, payload)
+	if err != nil {
+		log.Println("Failed to send email:", err)
+		return fmt.Errorf("failed to send email: %w", err)
+	}
+
+	return nil
+}
+
+func (s *otpService) SendPasswordResetOTP(ctx context.Context, email string) error {
+	// Generate and send OTP
+	code, _ := GenOTP()
+	otp := &models.OTP{
+		Email:     email,
+		Code:      code,
+		Action:    constants.OTP_RESET_PASSWORD,
+		ExpiresAt: time.Now().Add(5 * time.Minute),
+	}
+
+	if err := s.otpRepo.Create(ctx, otp); err != nil {
+		log.Println("Failed to create OTP:", err)
+		return fmt.Errorf("failed to create OTP: %w", err)
+	}
+	subject := "Mã xác thực đổi mật khẩu Messenger của bạn"
+
+	_, b, _, _ := runtime.Caller(0)
+	basepath := filepath.Dir(b)
+	templatePath := filepath.Join(basepath, "..", "templates", "email_reset_password.html")
 
 	htmlByte, err := os.ReadFile(templatePath)
 	if err != nil {
