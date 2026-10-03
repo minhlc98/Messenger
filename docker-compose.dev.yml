@@ -43,7 +43,6 @@ services:
       REDIS_URL: redis://redis:6379
       JWT_SECRET: 6bb01df2bd4e7bbbe33cde0c7d9c5a83076f78bc42787256709d5dc2805d15fc
       JWT_REFRESH_SECRET: e0f4cd0561a4b1b22ef14fbf250aa2c5397d6c4fb3cf21ce4f3e0578112bbb8e
-      UPLOAD_DIR: /app/uploads
     depends_on:
       postgres:
         condition: service_healthy

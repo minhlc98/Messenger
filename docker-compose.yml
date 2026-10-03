@@ -59,16 +59,20 @@ services:
       DB_MAX_IDLE_TIME: 10
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_USER:
+      REDIS_PASSWORD:
       JWT_SECRET: JWT_SECRET
       JWT_REFRESH_SECRET: JWT_REFRESH_SECRET
-      UPLOAD_DIR: /app/uploads
+      RESEND_API_KEY: RESEND_API_KEY
+      R2_ACCOUNT_ID: R2_ACCOUNT_ID
+      R2_ACCESS_KEY: R2_ACCESS_KEY
+      R2_SECRET_ACCESS_KEY: R2_SECRET_ACCESS_KEY
+      R2_BUCKET: R2_BUCKET
+      R2_PUBLIC_URL: R2_PUBLIC_URL
       RATE_LIMIT_BY_IP: 5
       RATE_LIMIT_BY_TOKEN: 6
-      AWS_SES_SENDER_EMAIL: AWS_SES_SENDER_EMAIL
     ports:
       - "8080:8080"
-    volumes:
-      - uploads_data:/app/uploads
 
   frontend:
     build:
@@ -88,4 +92,3 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  uploads_data:

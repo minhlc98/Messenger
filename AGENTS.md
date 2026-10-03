@@ -9,7 +9,7 @@ This document provides guidelines for AI coding agents (e.g., Antigravity, Copil
 A full-stack real-time chat application:
 - **Backend**: Go 1.25, Gin, GORM, gorilla/websocket
 - **Frontend**: Next.js 14, TypeScript, Tailwind CSS, Zustand
-- **Infrastructure**: PostgreSQL 16, Redis 7, Docker Compose
+- **Infrastructure**: PostgreSQL 16, Redis 7, Docker Compose, Cloudflare R2, Resend
 
 ---
 
@@ -96,10 +96,12 @@ Handler → Service → Repository → Database
 |----------|---------|
 | `PORT` | Backend HTTP port |
 | `DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / DB_NAME` | PostgreSQL connection |
-| `REDIS_HOST / REDIS_PORT` | Redis connection |
+| `DB_MAX_IDLE_CONNECTIONS / DB_MAX_CONNECTIONS / DB_MAX_LIFETIME / DB_MAX_IDLE_TIME` | DB Connection pooling settings |
+| `REDIS_HOST / REDIS_PORT / REDIS_USER / REDIS_PASSWORD` | Redis connection |
 | `JWT_SECRET` | Access token signing key |
 | `JWT_REFRESH_SECRET` | Refresh token signing key |
-| `UPLOAD_DIR` | Directory for uploaded files |
+| `RESEND_API_KEY` | Resend API key for OTP |
+| `R2_ACCOUNT_ID / R2_ACCESS_KEY / R2_SECRET_ACCESS_KEY / R2_BUCKET / R2_PUBLIC_URL` | Cloudflare R2 storage settings |
 | `RATE_LIMIT_BY_IP` | Max requests per minute per IP (auth routes) |
 | `RATE_LIMIT_BY_TOKEN` | Max requests per minute per JWT token |
 
@@ -131,7 +133,7 @@ cd frontend && npm run dev
 | Friends | `/api/friends/` | ✅ JWT Bearer |
 | Conversations | `/api/conversations/` | ✅ JWT Bearer |
 | WebSocket | `/ws?token=` | ✅ Token param |
-| Static files | `/uploads/` | ❌ |
+| Health | `/_health` | ❌ (public) |
 
 ---
 
@@ -161,5 +163,5 @@ Supported event types: `message`, `typing`, `read`, `online`, `offline`.
 - **Do not** expose GORM model structs directly in API responses — use DTOs.
 - **Do not** commit secrets or real `.env` files.
 - **Do not** skip rate-limit middleware on auth endpoints.
-- **Do not** store uploaded file paths with the server-absolute path — use relative paths served under `/uploads/`.
+- **Do not** store uploaded file paths with the server-absolute path locally — use Cloudflare R2 for all uploads.
 - **Do not** add business logic inside HTTP handlers.
