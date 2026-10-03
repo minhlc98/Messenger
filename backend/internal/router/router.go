@@ -69,6 +69,12 @@ func Setup(r *gin.Engine, db *gorm.DB, rdb *redis.Client, cfg *config.Config, hu
 		protected.Use(middleware.AuthMiddleware(cfg))
 		protected.Use(middleware.RateLimitByTokenMiddleware(rdb, cfg))
 		{
+			// Auth (Protected)
+			authProtected := protected.Group("/auth")
+			{
+				authProtected.POST("/change-password", authHandler.ChangePassword)
+			}
+
 			// Users
 			users := protected.Group("/users")
 			{
