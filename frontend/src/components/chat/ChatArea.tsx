@@ -113,12 +113,12 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
           const scrollHeightBefore = target.scrollHeight;
           prependMessages(conversation.id, olderMessages);
 
-          requestAnimationFrame(() => {
+          setTimeout(() => {
             if (scrollContainerRef.current) {
               const scrollHeightAfter = scrollContainerRef.current.scrollHeight;
               scrollContainerRef.current.scrollTop = scrollHeightAfter - scrollHeightBefore;
             }
-          });
+          }, 0);
         }
       } catch {
         toast.error("Đã xảy ra lỗi khi tải tin nhắn.");
@@ -289,7 +289,16 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
                     showAvatar={showAvatar}
                     isGroup={conversation.is_group}
                     position={position}
-                    onImageLoad={() => scrollToBottom(false)}
+                    onImageLoad={() => {
+                      if (idx !== convMessages.length - 1) return;
+                      const container = scrollContainerRef.current;
+                      if (!container) return;
+                      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 300;
+                      const isOwn = msg.sender_id === user?.id;
+                      if (isNearBottom || isOwn) {
+                        scrollToBottom(false);
+                      }
+                    }}
                   />
                 </div>
               );
