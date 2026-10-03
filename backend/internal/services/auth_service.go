@@ -22,6 +22,7 @@ type AuthService interface {
 	Refresh(ctx context.Context, refreshToken string) (*dto.RefreshResponse, error)
 	VerifyOTP(ctx context.Context, req dto.VerifyOTPRequest) (*dto.RegisterResponse, error)
 	ResendRegistrationOTP(ctx context.Context, req dto.ResendRegistrationOTPRequest) error
+	ChangePassword(ctx context.Context, userID string, ChangePasswordRequest dto.ChangePasswordRequest) error
 	generateTokens(userID string) (string, string, error)
 }
 
@@ -205,6 +206,34 @@ func (auth *authService) Refresh(ctx context.Context, refreshToken string) (*dto
 		AccessToken:  accessToken,
 		RefreshToken: newRefreshToken,
 	}, nil
+}
+
+func (auth *authService) ChangePassword(ctx context.Context, userID string, req dto.ChangePasswordRequest) error {
+	if req.NewPassword == req.OldPassword {
+		return errors.New("Mật khẩu mới không được giống mật khẩu cũ")
+	}
+
+	user, err := auth.userRepository.GetByID(ctx, userID)
+	if err != nil {
+		return errors.New("Người dùng không tồn tại.")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.OldPassword)); err != nil {
+		return errors.New("Mật khẩu cũ không chính xác")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.PasswordHash = string(hash)
+
+	if err := auth.userRepository.Update(ctx, user); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (auth *authService) generateTokens(userID string) (string, string, error) {

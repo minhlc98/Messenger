@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
+import PasswordInput from '@/components/ui/PasswordInput';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { AuthResponse } from '@/types';
@@ -101,11 +102,9 @@ export default function RegisterPage() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
-          <input
+          <PasswordInput
             {...register('password')}
-            type="password"
             placeholder="••••••••"
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
           />
           {errors.password && (
             <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
@@ -114,11 +113,9 @@ export default function RegisterPage() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu</label>
-          <input
+          <PasswordInput
             {...register('confirmPassword')}
-            type="password"
             placeholder="••••••••"
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
           />
           {errors.confirmPassword && (
             <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>
