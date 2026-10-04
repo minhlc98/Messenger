@@ -171,7 +171,7 @@ func (h *ChatHandler) AddMembers(c *gin.Context) {
 
 	conv, _ := h.chatService.GetConversation(ctx, convUUID)
 	if conv != nil {
-		var actorName string = "Một thành viên"
+		actorName := "Một thành viên"
 		for _, m := range conv.Members {
 			if m.ID.String() == userID {
 				actorName = m.Name
@@ -226,8 +226,8 @@ func (h *ChatHandler) UpdateConversation(c *gin.Context) {
 	}
 
 	var req UpdateConversationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if errBind := c.ShouldBindJSON(&req); errBind != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errBind.Error()})
 		return
 	}
 
@@ -238,7 +238,7 @@ func (h *ChatHandler) UpdateConversation(c *gin.Context) {
 	}
 
 	if conv != nil {
-		var actorName string = "Một thành viên"
+		actorName := "Một thành viên"
 		for _, m := range conv.Members {
 			if m.ID.String() == userID {
 				actorName = m.Name
@@ -305,7 +305,7 @@ func (h *ChatHandler) UploadFile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gửi file thất bại, vui lòng thử lại sau"})
 		return
 	}
-	defer src.Close()
+	defer func() { _ = src.Close() }()
 
 	contentType := file.Header.Get("Content-Type")
 	fileURL, err := h.storageService.Upload(ctx, newFilename, contentType, src)

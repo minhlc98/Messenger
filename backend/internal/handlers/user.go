@@ -98,7 +98,7 @@ func (h *UserHandler) UploadAvatar(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
 		return
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	contentType := file.Header.Get("Content-Type")
 	fileURL, err := h.storageService.Upload(ctx, newFilename, contentType, reader)

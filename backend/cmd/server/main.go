@@ -30,7 +30,7 @@ func main() {
 	}
 
 	rdb := database.ConnectRedis(cfg)
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 
 	hub := websocket.NewHub(db, rdb)
 	go hub.Run()
@@ -39,8 +39,9 @@ func main() {
 	router.Setup(r, db, rdb, cfg, hub)
 
 	srv := &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: r,
+		Addr:              ":" + cfg.Port,
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	go func() {

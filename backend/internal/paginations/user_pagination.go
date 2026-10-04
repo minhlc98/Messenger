@@ -11,7 +11,3 @@ type UserPagination struct {
 	Offset      int        `form:"offset" json:"offset" default:"0"`
 	Limit       int        `form:"limit" json:"limit" default:"10"`
 }
-
-func newUserPagination() *UserPagination {
-	return &UserPagination{}
-}

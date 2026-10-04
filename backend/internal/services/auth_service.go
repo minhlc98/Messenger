@@ -59,12 +59,18 @@ func (auth *authService) Register(ctx context.Context, req dto.RegisterRequest) 
 
 	if err := auth.userRepository.Create(ctx, user); err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			//nolint:staticcheck // Error messages are displayed to users
 			return nil, errors.New("Email đã được sử dụng")
 		}
 		return nil, err
 	}
 
-	go auth.otpService.SendRegistrationOTP(context.Background(), user.Email)
+	go func() {
+		detachedCtx := context.WithoutCancel(ctx)
+		if err := auth.otpService.SendRegistrationOTP(detachedCtx, user.Email); err != nil {
+			log.Printf("Failed to send OTP: %v", err)
+		}
+	}()
 
 	return &dto.RegisterResponse{
 		RequireOTP: true,
@@ -75,23 +81,30 @@ func (auth *authService) Login(ctx context.Context, req dto.LoginRequest) (*dto.
 	user, err := auth.userRepository.GetByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			//nolint:staticcheck // Error messages are displayed to users
 			return nil, errors.New("Email hoặc mật khẩu không đúng")
 		}
 		return nil, err
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+	if errCompare := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); errCompare != nil {
+		//nolint:staticcheck // Error messages are displayed to users
 		return nil, errors.New("Email hoặc mật khẩu không đúng")
 	}
 
 	if !user.IsVerified {
 		// Check if there is already a recent OTP
-		latestOtp, err := auth.otpRepository.GetLatestOTP(ctx, user.Email, "REGISTER")
-		if err == nil && time.Since(latestOtp.CreatedAt) < 2*time.Minute {
+		latestOtp, errGetOtp := auth.otpRepository.GetLatestOTP(ctx, user.Email, "REGISTER")
+		if errGetOtp == nil && time.Since(latestOtp.CreatedAt) < 2*time.Minute {
 			return &dto.RegisterResponse{RequireOTP: true}, nil
 		}
 
-		go auth.otpService.SendRegistrationOTP(context.Background(), user.Email)
+		go func() {
+			detachedCtx := context.WithoutCancel(ctx)
+			if errSendOTP := auth.otpService.SendRegistrationOTP(detachedCtx, user.Email); errSendOTP != nil {
+				log.Printf("Failed to send OTP: %v", errSendOTP)
+			}
+		}()
 
 		return &dto.RegisterResponse{RequireOTP: true}, nil
 	}
@@ -121,17 +134,19 @@ func (auth *authService) Login(ctx context.Context, req dto.LoginRequest) (*dto.
 func (auth *authService) VerifyOTP(ctx context.Context, req dto.VerifyOTPRequest) (*dto.RegisterResponse, error) {
 	otp, err := auth.otpRepository.GetValidOTP(ctx, req.Email, req.Code, req.Action)
 	if err != nil {
+		//nolint:staticcheck // Error messages are displayed to users
 		return nil, errors.New("Mã OTP không hợp lệ hoặc đã hết hạn")
 	}
 
 	user, err := auth.userRepository.GetByEmail(ctx, req.Email)
 	if err != nil {
+		//nolint:staticcheck // Error messages are displayed to users
 		return nil, errors.New("Không tìm thấy người dùng")
 	}
 
 	user.IsVerified = true
-	if err := auth.userRepository.Update(ctx, user); err != nil {
-		return nil, err
+	if errUpdate := auth.userRepository.Update(ctx, user); errUpdate != nil {
+		return nil, errUpdate
 	}
 
 	// Xoá OTP sau khi verify thành công
@@ -163,6 +178,7 @@ func (auth *authService) ResendRegistrationOTP(ctx context.Context, req dto.Rese
 	_, err := auth.userRepository.GetByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			//nolint:staticcheck // Error messages are displayed to users
 			return errors.New("Email không tồn tại")
 		}
 		return err
@@ -170,11 +186,13 @@ func (auth *authService) ResendRegistrationOTP(ctx context.Context, req dto.Rese
 
 	latestOtp, err := auth.otpRepository.GetLatestOTP(ctx, req.Email, constants.OTP_REGISTRATION)
 	if err == nil && time.Since(latestOtp.CreatedAt) < 2*time.Minute {
+		//nolint:staticcheck // Error messages are displayed to users
 		return errors.New("Vui lòng đợi 2 phút trước khi yêu cầu mã mới")
 	}
 
 	if err := auth.otpService.SendRegistrationOTP(ctx, req.Email); err != nil {
 		log.Println("Failed to send OTP:", err)
+		//nolint:staticcheck // Error messages are displayed to users
 		return errors.New("Gửi OTP thất bại")
 	}
 
@@ -190,17 +208,20 @@ func (auth *authService) Refresh(ctx context.Context, refreshToken string) (*dto
 	})
 
 	if err != nil || !token.Valid {
+		//nolint:staticcheck // Error messages are displayed to users
 		return nil, errors.New("Invalid refresh token")
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
+		//nolint:staticcheck // Error messages are displayed to users
 		return nil, errors.New("Invalid token claims")
 	}
 
-	userID := claims["user_id"].(string)
+	userID, _ := claims["user_id"].(string)
 	accessToken, newRefreshToken, err := auth.generateTokens(userID)
 	if err != nil {
+		//nolint:staticcheck // Error messages are displayed to users
 		return nil, errors.New("Failed to generate access token")
 	}
 
@@ -212,15 +233,18 @@ func (auth *authService) Refresh(ctx context.Context, refreshToken string) (*dto
 
 func (auth *authService) ChangePassword(ctx context.Context, userID string, req dto.ChangePasswordRequest) error {
 	if req.NewPassword == req.OldPassword {
+		//nolint:staticcheck // Error messages are displayed to users
 		return errors.New("Mật khẩu mới không được giống mật khẩu cũ")
 	}
 
 	user, err := auth.userRepository.GetByID(ctx, userID)
 	if err != nil {
-		return errors.New("Người dùng không tồn tại.")
+		//nolint:staticcheck // Error messages are displayed to users
+		return errors.New("Người dùng không tồn tại")
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.OldPassword)); err != nil {
+	if errCmp := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.OldPassword)); errCmp != nil {
+		//nolint:staticcheck // Error messages are displayed to users
 		return errors.New("Mật khẩu cũ không chính xác")
 	}
 
@@ -231,8 +255,8 @@ func (auth *authService) ChangePassword(ctx context.Context, userID string, req 
 
 	user.PasswordHash = string(hash)
 
-	if err := auth.userRepository.Update(ctx, user); err != nil {
-		return err
+	if errUpd := auth.userRepository.Update(ctx, user); errUpd != nil {
+		return errUpd
 	}
 
 	return nil
@@ -247,11 +271,13 @@ func (auth *authService) ForgotPassword(ctx context.Context, req dto.ForgotPassw
 
 	latestOtp, err := auth.otpRepository.GetLatestOTP(ctx, req.Email, constants.OTP_RESET_PASSWORD)
 	if err == nil && time.Since(latestOtp.CreatedAt) < 5*time.Minute {
+		//nolint:staticcheck // Error messages are displayed to users
 		return errors.New("Vui lòng đợi 5 phút trước khi yêu cầu mã mới")
 	}
 
 	if err := auth.otpService.SendPasswordResetOTP(context.Background(), req.Email); err != nil {
 		log.Println("Failed to send OTP:", err)
+		//nolint:staticcheck // Error messages are displayed to users
 		return errors.New("Gửi OTP thất bại")
 	}
 
@@ -261,11 +287,13 @@ func (auth *authService) ForgotPassword(ctx context.Context, req dto.ForgotPassw
 func (auth *authService) ResetPassword(ctx context.Context, req dto.ResetPasswordRequest) error {
 	otp, err := auth.otpRepository.GetValidOTP(ctx, req.Email, req.Code, constants.OTP_RESET_PASSWORD)
 	if err != nil {
+		//nolint:staticcheck // Error messages are displayed to users
 		return errors.New("Mã OTP không hợp lệ hoặc đã hết hạn")
 	}
 
 	user, err := auth.userRepository.GetByEmail(ctx, req.Email)
 	if err != nil {
+		//nolint:staticcheck // Error messages are displayed to users
 		return errors.New("Không tìm thấy người dùng")
 	}
 

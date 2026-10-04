@@ -247,7 +247,7 @@ func (h *Hub) publishToRedis(userIDs []string, payload []byte) {
 
 func (h *Hub) subscribeRedis() {
 	pubsub := h.Redis.Subscribe(context.Background(), redisChannel)
-	defer pubsub.Close()
+	defer func() { _ = pubsub.Close() }()
 
 	ch := pubsub.Channel()
 	for msg := range ch {

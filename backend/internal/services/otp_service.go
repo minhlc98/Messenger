@@ -62,6 +62,7 @@ func (s *otpService) SendRegistrationOTP(ctx context.Context, email string) erro
 	// Đi ngược ra ngoài 1 folder (từ services ra internal) rồi vào folder templates
 	templatePath := filepath.Join(basepath, "..", "templates", "email_registration.html")
 
+	//nolint:gosec // Path is constructed internally, not from user input
 	htmlByte, err := os.ReadFile(templatePath)
 	if err != nil {
 		return fmt.Errorf("failed to read email template: %w", err)
@@ -103,6 +104,7 @@ func (s *otpService) SendPasswordResetOTP(ctx context.Context, email string) err
 	basepath := filepath.Dir(b)
 	templatePath := filepath.Join(basepath, "..", "templates", "email_reset_password.html")
 
+	//nolint:gosec // Path is constructed internally, not from user input
 	htmlByte, err := os.ReadFile(templatePath)
 	if err != nil {
 		return fmt.Errorf("failed to read email template: %w", err)

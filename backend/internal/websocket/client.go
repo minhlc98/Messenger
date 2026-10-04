@@ -25,14 +25,15 @@ type Client struct {
 func (c *Client) ReadPump() {
 	defer func() {
 		c.Hub.Unregister <- c
-		c.Conn.Close()
+		_ = c.Conn.Close()
 	}()
 
 	c.Conn.SetReadLimit(maxMessageSize)
-	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	if err := c.Conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+		return
+	}
 	c.Conn.SetPongHandler(func(string) error {
-		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
-		return nil
+		return c.Conn.SetReadDeadline(time.Now().Add(pongWait))
 	})
 
 	for {
@@ -59,15 +60,18 @@ func (c *Client) WritePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.Conn.Close()
+		_ = c.Conn.Close()
 	}()
 
 	for {
 		select {
 		case message, ok := <-c.Send:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			err := c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err != nil {
+				return
+			}
 			if !ok {
-				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				_ = c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 			// Gửi từng message riêng biệt — không gộp
@@ -77,7 +81,9 @@ func (c *Client) WritePump() {
 
 		case <-ticker.C:
 			// Ping để giữ kết nối sống
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.Conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+				return
+			}
 			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}

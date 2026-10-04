@@ -86,6 +86,7 @@ func RunMigrations(db *gorm.DB) error {
 			sort.Strings(sqlFiles)
 			for _, file := range sqlFiles {
 				filePath := filepath.Join(migrationsDir, file)
+				//nolint:gosec // Path is constructed from safe internal directory
 				content, err := os.ReadFile(filePath)
 				if err != nil {
 					return fmt.Errorf("failed to read migration file %s: %w", file, err)
