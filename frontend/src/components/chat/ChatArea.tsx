@@ -44,7 +44,7 @@ function getBubblePosition(
 }
 
 export default function ChatArea({ conversation }: ChatAreaProps) {
-  const { messages, setMessages, typingUsers, setHasMore, hasMore, prependMessages } = useChatStore();
+  const { messages, setMessages, typingUsers, setHasMore, hasMore, prependMessages, cursors, setCursor } = useChatStore();
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -74,12 +74,16 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
     const fetch = async () => {
       setLoading(true);
       try {
-        const res = await api.get<{ data: Message[] }>(
+        const res = await api.get<{ data: Message[], pagination: { next_cursor?: string, limit: number } }>(
           `/conversations/${conversation.id}/messages?limit=50`
         );
         const fetchedMessages = res.data.data || [];
         setMessages(conversation.id, fetchedMessages);
-        if (fetchedMessages.length < 50) {
+        
+        const nextCursor = res.data.pagination?.next_cursor;
+        setCursor(conversation.id, nextCursor || null);
+        
+        if (!nextCursor) {
           setHasMore(conversation.id, false);
         } else {
           setHasMore(conversation.id, true);
@@ -94,16 +98,21 @@ export default function ChatArea({ conversation }: ChatAreaProps) {
   const handleScroll = async (e: UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement;
     if (target.scrollTop === 0 && !loadingMore && !loading && convMessages.length > 0 && hasMore[conversation.id] !== false) {
+      const currentCursor = cursors[conversation.id];
+      if (!currentCursor) return;
+
       setLoadingMore(true);
-      const firstMsgId = convMessages[0].id;
 
       try {
-        const res = await api.get<{ data: Message[] }>(
-          `/conversations/${conversation.id}/messages?limit=50&before=${firstMsgId}`
+        const res = await api.get<{ data: Message[], pagination: { next_cursor?: string, limit: number } }>(
+          `/conversations/${conversation.id}/messages?limit=50&cursor=${encodeURIComponent(currentCursor)}`
         );
 
         const olderMessages = res.data.data || [];
-        if (olderMessages.length < 50) {
+        const nextCursor = res.data.pagination?.next_cursor;
+        setCursor(conversation.id, nextCursor || null);
+
+        if (!nextCursor) {
           setHasMore(conversation.id, false);
         } else {
           setHasMore(conversation.id, true);

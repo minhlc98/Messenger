@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"chat-app/internal/dto"
 	"chat-app/internal/models"
 	"chat-app/internal/repositories"
 )
@@ -14,7 +15,7 @@ type ChatService interface {
 	GetConversation(ctx context.Context, convID uuid.UUID) (*models.Conversation, error)
 	CheckMembership(ctx context.Context, convID uuid.UUID, userID string) (bool, error)
 	CreateConversation(ctx context.Context, isGroup bool, name, creatorID string, memberIDs []string) (*models.Conversation, error)
-	GetMessages(ctx context.Context, convID uuid.UUID, before string, limit int) ([]models.Message, error)
+	GetMessages(ctx context.Context, convID uuid.UUID, cursor string, limit int) (dto.CursorBaseResponse[[]models.Message], error)
 	CheckAdminRole(ctx context.Context, convID uuid.UUID, userID string) (bool, error)
 	AddMembers(ctx context.Context, convID uuid.UUID, memberIDs []string) error
 	UpdateConversation(ctx context.Context, convID uuid.UUID, name string) (*models.Conversation, error)
@@ -46,8 +47,8 @@ func (s *chatService) CreateConversation(ctx context.Context, isGroup bool, name
 	return s.chatRepo.CreateConversation(ctx, isGroup, name, creatorID, memberIDs)
 }
 
-func (s *chatService) GetMessages(ctx context.Context, convID uuid.UUID, before string, limit int) ([]models.Message, error) {
-	return s.chatRepo.GetMessages(ctx, convID, before, limit)
+func (s *chatService) GetMessages(ctx context.Context, convID uuid.UUID, cursor string, limit int) (dto.CursorBaseResponse[[]models.Message], error) {
+	return s.chatRepo.GetMessages(ctx, convID, cursor, limit)
 }
 
 func (s *chatService) CheckAdminRole(ctx context.Context, convID uuid.UUID, userID string) (bool, error) {
