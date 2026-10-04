@@ -121,19 +121,15 @@ func (h *ChatHandler) GetMessages(c *gin.Context) {
 	if err != nil {
 		limit = 50
 	}
-	before := c.Query("before")
+	cursor := c.Query("cursor")
 
-	messages, err := h.chatService.GetMessages(c.Request.Context(), convUUID, before, limit)
+	messages, err := h.chatService.GetMessages(c.Request.Context(), convUUID, cursor, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get messages"})
 		return
 	}
 
-	if messages == nil {
-		messages = []models.Message{}
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": messages})
+	c.JSON(http.StatusOK, messages)
 }
 
 type AddMembersRequest struct {

@@ -11,6 +11,7 @@ interface ChatStore {
   messages: Record<string, Message[]>;
   typingUsers: TypingState;
   hasMore: Record<string, boolean>;
+  cursors: Record<string, string | null>;
   onlineUsers: Record<string, boolean>;
   pendingFriendRequestsCount: number;
 
@@ -24,6 +25,7 @@ interface ChatStore {
   addMessage: (conversationId: string, message: Message) => void;
   setTyping: (conversationId: string, userId: string, isTyping: boolean) => void;
   setHasMore: (conversationId: string, hasMore: boolean) => void;
+  setCursor: (conversationId: string, cursor: string | null) => void;
   setOnlineUser: (userId: string, isOnline: boolean) => void;
   setPendingFriendRequestsCount: (count: number) => void;
   incrementPendingFriendRequestsCount: () => void;
@@ -36,6 +38,7 @@ export const useChatStore = create<ChatStore>((set) => ({
   messages: {},
   typingUsers: {},
   hasMore: {},
+  cursors: {},
   onlineUsers: {},
   pendingFriendRequestsCount: 0,
 
@@ -119,6 +122,11 @@ export const useChatStore = create<ChatStore>((set) => ({
   setHasMore: (conversationId, hasMore) =>
     set((state) => ({
       hasMore: { ...state.hasMore, [conversationId]: hasMore },
+    })),
+
+  setCursor: (conversationId, cursor) =>
+    set((state) => ({
+      cursors: { ...state.cursors, [conversationId]: cursor },
     })),
 
   setOnlineUser: (userId, isOnline) =>

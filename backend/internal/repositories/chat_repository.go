@@ -2,11 +2,16 @@ package repositories
 
 import (
 	"context"
-	"math"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"slices"
 	"sort"
+	"time"
 
 	"github.com/google/uuid"
 
+	"chat-app/internal/dto"
 	"chat-app/internal/models"
 
 	"golang.org/x/sync/errgroup"
@@ -19,7 +24,7 @@ type ChatRepository interface {
 	GetConversation(ctx context.Context, convID uuid.UUID) (*models.Conversation, error)
 	CheckMembership(ctx context.Context, convID uuid.UUID, userID string) (bool, error)
 	CreateConversation(ctx context.Context, isGroup bool, name, creatorID string, memberIDs []string) (*models.Conversation, error)
-	GetMessages(ctx context.Context, convID uuid.UUID, before string, limit int) ([]models.Message, error)
+	GetMessages(ctx context.Context, convID uuid.UUID, cursor string, limit int) (dto.CursorBaseResponse[[]models.Message], error)
 	CheckAdminRole(ctx context.Context, convID uuid.UUID, userID string) (bool, error)
 	AddMembers(ctx context.Context, convID uuid.UUID, memberIDs []string) error
 	UpdateConversation(ctx context.Context, convID uuid.UUID, name string) (*models.Conversation, error)
@@ -201,29 +206,66 @@ func (r *chatRepository) CreateConversation(ctx context.Context, isGroup bool, n
 	return r.GetConversation(ctx, conv.ID)
 }
 
-func (r *chatRepository) GetMessages(ctx context.Context, convID uuid.UUID, before string, limit int) ([]models.Message, error) {
+func (r *chatRepository) GetMessages(ctx context.Context, convID uuid.UUID, cursor string, limit int) (dto.CursorBaseResponse[[]models.Message], error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	limit = min(limit, 100)
+
+	type CursorQuery struct {
+		CreatedAt time.Time `json:"created_at"`
+		MsgID     uuid.UUID `json:"msg_id"`
+	}
+
+	var cursorQuery CursorQuery
+
+	if cursor != "" {
+		decodedCursor, err := base64.StdEncoding.DecodeString(cursor)
+		if err != nil {
+			return dto.CursorBaseResponse[[]models.Message]{}, errors.New("invalid cursor")
+		}
+		if err := json.Unmarshal(decodedCursor, &cursorQuery); err != nil {
+			return dto.CursorBaseResponse[[]models.Message]{}, errors.New("invalid cursor")
+		}
+	}
+
+	query := r.db.WithContext(ctx).Preload("Sender").Where("conversation_id = ?", convID)
+
+	if cursor != "" {
+		query = query.Where("(created_at, id) < (?, ?)", cursorQuery.CreatedAt, cursorQuery.MsgID)
+	}
+
 	var messages []models.Message
-	q := r.db.WithContext(ctx).Preload("Sender").Where("conversation_id = ?", convID)
-
-	if before != "" {
-		var beforeMsg models.Message
-		r.db.WithContext(ctx).Select("created_at").Where("id = ?", before).First(&beforeMsg)
-		q = q.Where("created_at < ?", beforeMsg.CreatedAt)
-	}
-
-	q = q.Order("created_at DESC")
-
-	limit = int(math.Min(float64(limit), 500))
-	err := q.Limit(limit).Find(&messages).Error
+	err := query.Order("created_at DESC, id DESC").Limit(limit + 1).Find(&messages).Error
 	if err != nil {
-		return nil, err
+		return dto.CursorBaseResponse[[]models.Message]{}, err
 	}
 
-	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
-		messages[i], messages[j] = messages[j], messages[i]
+	var nextCursor *string
+	if len(messages) == limit+1 {
+		lastMsg := messages[len(messages)-2]
+		nextCursorQuery := CursorQuery{
+			CreatedAt: lastMsg.CreatedAt,
+			MsgID:     lastMsg.ID,
+		}
+		nextCursorBytes, _ := json.Marshal(nextCursorQuery)
+		encoded := base64.URLEncoding.EncodeToString(nextCursorBytes)
+		nextCursor = &encoded
 	}
 
-	return messages, nil
+	if len(messages) > limit {
+		messages = messages[:limit]
+	}
+
+	slices.Reverse(messages)
+
+	return dto.CursorBaseResponse[[]models.Message]{
+		Data: messages,
+		Pagination: dto.CursorPaginationInfo{
+			Limit:      limit,
+			NextCursor: nextCursor,
+		},
+	}, nil
 }
 
 func (r *chatRepository) CheckAdminRole(ctx context.Context, convID uuid.UUID, userID string) (bool, error) {
