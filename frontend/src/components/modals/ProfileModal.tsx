@@ -103,9 +103,6 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   };
 
   const handleLogout = async () => {
-    try {
-      await api.post('/auth/logout');
-    } catch { }
     logout();
     window.location.href = '/login';
   };

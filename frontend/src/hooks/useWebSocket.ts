@@ -146,6 +146,14 @@ export function useWebSocketInit() {
 
   useEffect(() => {
     if (token) connect();
+    else {
+      // User logged out
+      if (wsInstance) {
+        wsInstance.onclose = null;
+        wsInstance.close();
+        wsInstance = null;
+      }
+    }
     return () => {
       if (reconnectTimer) clearTimeout(reconnectTimer);
     };
