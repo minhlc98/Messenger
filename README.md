@@ -19,6 +19,7 @@ A real-time chat application built with **Go** backend and **Next.js** frontend,
 | ✅ | Real-time messaging via WebSocket |
 | ✅ | File & image uploads in chat |
 | ✅ | Rate limiting by IP and JWT token |
+| ✅ | Forgot Password / Password Reset |
 | 🔜 | Video calls & voice recording |
 
 ---
@@ -202,6 +203,9 @@ All protected endpoints require the `Authorization: Bearer <access_token>` heade
 | POST | `/api/auth/refresh` | ❌ | Refresh the access token |
 | POST | `/api/auth/verify-otp` | ❌ | Verify OTP after registration |
 | POST | `/api/auth/resend-registration-otp` | ❌ | Resend registration OTP |
+| POST | `/api/auth/forgot-password` | ❌ | Request a password reset OTP |
+| POST | `/api/auth/reset-password` | ❌ | Reset password using OTP |
+| POST | `/api/auth/change-password` | ✅ | Change password |
 
 ### Users
 
@@ -230,7 +234,7 @@ All protected endpoints require the `Authorization: Bearer <access_token>` heade
 | GET | `/api/conversations` | ✅ | List all conversations |
 | POST | `/api/conversations` | ✅ | Create a new conversation |
 | GET | `/api/conversations/:id` | ✅ | Get conversation details |
-| GET | `/api/conversations/:id/messages` | ✅ | Get paginated messages |
+| GET | `/api/conversations/:id/messages` | ✅ | Get cursor-paginated messages |
 | POST | `/api/conversations/:id/members` | ✅ | Add members to a group |
 | POST | `/api/conversations/:id/upload` | ✅ | Upload a file to a conversation |
 

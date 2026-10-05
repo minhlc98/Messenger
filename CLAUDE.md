@@ -62,6 +62,7 @@ Chat/
 5. **UUID primary keys**: All models use `github.com/google/uuid` for IDs.
 6. **Auto-migration**: GORM auto-migrates on startup. Keep struct tags (`gorm:"..."`) accurate.
 7. **Rate limiting**: Auth routes are rate-limited by IP; protected routes are rate-limited by JWT token. Do not bypass this in new routes.
+8. **Pagination**: Use cursor-based pagination for real-time lists (like messages) using the generic `dto.CursorBaseResponse[T]`.
 
 ### Frontend
 
@@ -149,10 +150,13 @@ POST /api/auth/login
 POST /api/auth/refresh
 POST /api/auth/verify-otp
 POST /api/auth/resend-registration-otp
+POST /api/auth/forgot-password
+POST /api/auth/reset-password
 ```
 
 ### Protected (requires `Authorization: Bearer <token>`)
 ```
+POST     /api/auth/change-password
 GET/PUT  /api/users/me
 PUT      /api/users/me/avatar
 GET      /api/users/search?email=

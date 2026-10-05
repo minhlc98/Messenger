@@ -59,7 +59,7 @@ Handler → Service → Repository → Database
 - **Services** (`internal/services/`): Business logic, always defined as Go interfaces. New implementations must satisfy the interface.
 - **Repositories** (`internal/repositories/`): DB queries via GORM. Also defined as interfaces for testability.
 - **Models** (`internal/models/`): GORM structs with UUIDs as primary keys.
-- **DTOs** (`internal/dto/`): Separate structs for requests and responses — never expose models directly.
+- **DTOs** (`internal/dto/`): Separate structs for requests and responses — never expose models directly. Generic `CursorBaseResponse[T]` is used for cursor-based paginated responses.
 
 ### Frontend (Next.js)
 
@@ -80,6 +80,7 @@ Handler → Service → Repository → Database
 - Follow standard Go project layout; do not add top-level packages without discussion.
 - GORM auto-migration runs at startup — keep model struct tags correct.
 - Validate request bodies using `c.ShouldBindJSON` and the `validate` struct tags.
+- Prefer **Cursor-based pagination** (using tuple comparison `(created_at, id) < (?, ?)`) over offset pagination for real-time lists like messages.
 
 ### TypeScript / Next.js
 
@@ -128,7 +129,7 @@ cd frontend && npm run dev
 
 | Category | Prefix | Auth Required |
 |----------|--------|---------------|
-| Auth | `/api/auth/` | ❌ (public) |
+| Auth (Public) | `/api/auth/` | ❌ (mostly, except `change-password`) |
 | Users | `/api/users/` | ✅ JWT Bearer |
 | Friends | `/api/friends/` | ✅ JWT Bearer |
 | Conversations | `/api/conversations/` | ✅ JWT Bearer |
