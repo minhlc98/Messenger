@@ -23,8 +23,6 @@ func Setup(r *gin.Engine, db *gorm.DB, rdb *redis.Client, cfg *config.Config, hu
 		AllowCredentials: true,
 	}))
 
-	r.Use(gin.Recovery())
-
 	healthHandler := handlers.NewHealthHandler()
 	r.GET("/_health", healthHandler.Health)
 
