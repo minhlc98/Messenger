@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -92,7 +93,11 @@ func (h *Hub) handleBroadcast(message []byte) {
 		return
 	}
 
-	msgType, _ := msg["type"].(string)
+	msgType, ok := msg["type"].(string)
+	if !ok {
+		log.Println("Invalid broadcast message type:", msg)
+		return
+	}
 
 	switch msgType {
 	case "message":
@@ -122,9 +127,12 @@ func (h *Hub) handleBroadcast(message []byte) {
 
 func (h *Hub) handleChatMessage(msg dto.WSMessageType) {
 	senderID := msg.SenderID
-	content := msg.Content
+	content := strings.TrimSpace(msg.Content)
 	msgContentType := msg.MessageType
 	convID := msg.ConversationID
+	if content == "" {
+		return
+	}
 	if msgContentType == "" {
 		msgContentType = "text"
 	}

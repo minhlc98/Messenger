@@ -1,7 +1,7 @@
 package dto
 
 type CursorPaginationInfo struct {
-	NextCursor *string `json:"next_cursor,omitempty"`
+	NextCursor *string `json:"next_cursor"`
 	Limit      int     `json:"limit"`
 }
 
