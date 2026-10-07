@@ -29,7 +29,7 @@ type ResendRegistrationOTPRequest struct {
 
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
+	Password string `json:"password" binding:"required,min=6"`
 }
 
 type ChangePasswordRequest struct {
@@ -48,7 +48,7 @@ type ResetPasswordRequest struct {
 }
 
 type RefreshRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
+	RefreshToken string `json:"refresh_token" binding:"required,min=10"`
 }
 
 type RefreshResponse struct {
