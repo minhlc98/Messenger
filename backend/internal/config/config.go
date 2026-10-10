@@ -23,6 +23,7 @@ type Config struct {
 	RedisPort        string
 	RedisUser        string
 	RedisPassword    string
+	IsMultiInstance  bool
 	JWTSecret        string
 	JWTRefreshSec    string
 	RateLimitByIP    int
@@ -56,6 +57,7 @@ func Load() *Config {
 		RedisPort:        getEnv("REDIS_PORT", "6379"),
 		RedisUser:        getEnv("REDIS_USER", ""),
 		RedisPassword:    getEnv("REDIS_PASSWORD", ""),
+		IsMultiInstance:  getEnvBool("IS_MULTI_INSTANCE", false),
 		JWTSecret:        getEnv("JWT_SECRET", "secret"),
 		JWTRefreshSec:    getEnv("JWT_REFRESH_SECRET", "refresh_secret"),
 		RateLimitByIP:    getEnvInt("RATE_LIMIT_BY_IP", 1),
@@ -84,6 +86,20 @@ func getEnvInt(key string, defaultVal int) int {
 	result, err := strconv.Atoi(val)
 	if err != nil {
 		log.Printf("Error converting %s to integer: %v", key, err)
+		return defaultVal
+	}
+	return result
+}
+
+func getEnvBool(key string, defaultVal bool) bool {
+	val := getEnv(key, "")
+	if val == "" {
+		return defaultVal
+	}
+
+	result, err := strconv.ParseBool(val)
+	if err != nil {
+		log.Printf("Error converting %s to boolean: %v", key, err)
 		return defaultVal
 	}
 	return result

@@ -93,6 +93,8 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_USER=
 REDIS_PASSWORD=
+# Set true when running multiple backend instances; enables Redis Pub/Sub for WebSocket broadcasts.
+IS_MULTI_INSTANCE=false
 JWT_SECRET=<secret>
 JWT_REFRESH_SECRET=<secret>
 RESEND_API_KEY=
