@@ -16,13 +16,14 @@ import (
 const redisChannel = "ws_broadcast"
 
 type Hub struct {
-	Clients    map[string]map[*Client]bool
-	Broadcast  chan []byte
-	Register   chan *Client
-	Unregister chan *Client
-	mu         sync.RWMutex
-	DB         *gorm.DB
-	Redis      *redis.Client
+	Clients         map[string]map[*Client]bool
+	Broadcast       chan []byte
+	Register        chan *Client
+	Unregister      chan *Client
+	mu              sync.RWMutex
+	DB              *gorm.DB
+	Redis           *redis.Client
+	IsMultiInstance bool
 }
 
 type RedisBroadcastMsg struct {
@@ -30,19 +31,22 @@ type RedisBroadcastMsg struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
-func NewHub(db *gorm.DB, rdb *redis.Client) *Hub {
+func NewHub(db *gorm.DB, rdb *redis.Client, isMultiInstance bool) *Hub {
 	return &Hub{
-		Clients:    make(map[string]map[*Client]bool),
-		Broadcast:  make(chan []byte, 256),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
-		DB:         db,
-		Redis:      rdb,
+		Clients:         make(map[string]map[*Client]bool),
+		Broadcast:       make(chan []byte, 256),
+		Register:        make(chan *Client),
+		Unregister:      make(chan *Client),
+		DB:              db,
+		Redis:           rdb,
+		IsMultiInstance: isMultiInstance,
 	}
 }
 
 func (h *Hub) Run() {
-	go h.subscribeRedis()
+	if h.IsMultiInstance {
+		go h.subscribeRedis()
+	}
 
 	for {
 		select {
@@ -236,6 +240,14 @@ func (h *Hub) publishToRedis(userIDs []string, payload []byte) {
 	if len(userIDs) == 0 {
 		return
 	}
+	if !h.IsMultiInstance {
+		h.deliverToUsers(userIDs, payload)
+		return
+	}
+	if h.Redis == nil {
+		log.Println("Redis is not configured for multi-instance WebSocket broadcasting")
+		return
+	}
 
 	msg := RedisBroadcastMsg{
 		UserIDs: userIDs,
@@ -254,6 +266,10 @@ func (h *Hub) publishToRedis(userIDs []string, payload []byte) {
 }
 
 func (h *Hub) subscribeRedis() {
+	if h.Redis == nil {
+		log.Println("Redis is not configured for multi-instance WebSocket broadcasting")
+		return
+	}
 	pubsub := h.Redis.Subscribe(context.Background(), redisChannel)
 	defer func() { _ = pubsub.Close() }()
 
@@ -265,25 +281,29 @@ func (h *Hub) subscribeRedis() {
 			continue
 		}
 
-		var toRemove []*Client
-		h.mu.RLock()
-		for _, uID := range broadcastMsg.UserIDs {
-			if userClients, ok := h.Clients[uID]; ok {
-				for client := range userClients {
-					select {
-					case client.Send <- broadcastMsg.Payload:
-					default:
-						toRemove = append(toRemove, client)
-					}
+		h.deliverToUsers(broadcastMsg.UserIDs, broadcastMsg.Payload)
+	}
+}
+
+func (h *Hub) deliverToUsers(userIDs []string, payload []byte) {
+	var toRemove []*Client
+	h.mu.RLock()
+	for _, uID := range userIDs {
+		if userClients, ok := h.Clients[uID]; ok {
+			for client := range userClients {
+				select {
+				case client.Send <- payload:
+				default:
+					toRemove = append(toRemove, client)
 				}
 			}
 		}
-		h.mu.RUnlock()
+	}
+	h.mu.RUnlock()
 
-		for _, client := range toRemove {
-			go func(c *Client) {
-				h.Unregister <- c
-			}(client)
-		}
+	for _, client := range toRemove {
+		go func(c *Client) {
+			h.Unregister <- c
+		}(client)
 	}
 }

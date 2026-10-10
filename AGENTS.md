@@ -99,6 +99,7 @@ Handler → Service → Repository → Database
 | `DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / DB_NAME` | PostgreSQL connection |
 | `DB_MAX_IDLE_CONNECTIONS / DB_MAX_CONNECTIONS / DB_MAX_LIFETIME / DB_MAX_IDLE_TIME` | DB Connection pooling settings |
 | `REDIS_HOST / REDIS_PORT / REDIS_USER / REDIS_PASSWORD` | Redis connection |
+| `IS_MULTI_INSTANCE` | Whether the backend runs as multiple instances; when `true`, WebSocket broadcasts use Redis Pub/Sub for cross-instance delivery. Defaults to `false`. |
 | `JWT_SECRET` | Access token signing key |
 | `JWT_REFRESH_SECRET` | Refresh token signing key |
 | `RESEND_API_KEY` | Resend API key for OTP |

@@ -32,7 +32,7 @@ func main() {
 	rdb := database.ConnectRedis(cfg)
 	defer func() { _ = rdb.Close() }()
 
-	hub := websocket.NewHub(db, rdb)
+	hub := websocket.NewHub(db, rdb, cfg.IsMultiInstance)
 	go hub.Run()
 
 	r := gin.Default()
